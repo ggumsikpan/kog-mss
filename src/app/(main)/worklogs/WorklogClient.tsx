@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Plus, CheckCircle2, Circle, ChevronLeft, ChevronRight,
   Trash2, MessageSquare, X, Loader2, AlertCircle, Briefcase, Zap, Clock,
-  Car, UserX, ChevronDown, Pencil, Check,
+  Car, UserX, Pencil, Check, Moon, Hammer,
 } from 'lucide-react'
 
 // ── 타입 ────────────────────────────────────────────────
@@ -41,6 +41,9 @@ interface Props {
   today: string
   role: 'admin' | 'manager' | 'employee'
   isSample?: boolean
+  isRestDay?: boolean
+  restLabel?: string
+  specialWorkday?: { date: string; reason: string } | null
 }
 
 // ── 메타 ────────────────────────────────────────────────
@@ -84,12 +87,41 @@ export default function WorklogClient({
   logs: initLogs, users, departments, attendance: initAttendance,
   nonSubmitters: initNonSubmitters,
   targetDate, today, role, isSample,
+  isRestDay = false, restLabel = '', specialWorkday: initSpecialWorkday = null,
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const canManage = isSample || role === 'admin' || role === 'manager'
   // 과거 날짜: 업무일지 읽기 전용 (근태는 관리자가 소급 수정 가능)
   const isPast = targetDate < today
+
+  // ── 특근 상태 ───────────────────────────────────────────
+  const [specialWork, setSpecialWork] = useState(initSpecialWorkday)
+  const [showSpecialForm, setShowSpecialForm] = useState(false)
+  const [specialReason, setSpecialReason] = useState('')
+  const [savingSpecial, setSavingSpecial] = useState(false)
+
+  async function addSpecialWorkday() {
+    setSavingSpecial(true)
+    if (!isSample) {
+      const supabase = createClient()
+      await supabase.from('special_workdays')
+        .upsert({ date: targetDate, reason: specialReason || '특근' })
+    }
+    setSpecialWork({ date: targetDate, reason: specialReason || '특근' })
+    setSavingSpecial(false)
+    setShowSpecialForm(false)
+    setSpecialReason('')
+  }
+
+  async function removeSpecialWorkday() {
+    if (!confirm('특근 처리를 취소하시겠습니까? 이 날의 업무일지가 모두 숨겨집니다.')) return
+    if (!isSample) {
+      const supabase = createClient()
+      await supabase.from('special_workdays').delete().eq('date', targetDate)
+    }
+    setSpecialWork(null)
+  }
 
   // ── 날짜 네비 ──────────────────────────────────────────
   function goDate(date: string) {
@@ -244,6 +276,79 @@ export default function WorklogClient({
 
   const isToday = targetDate === today
 
+  // ── 쉬는 날이고 특근 없으면 조기 반환 ───────────────────
+  if (isRestDay && !specialWork) {
+    return (
+      <div className="space-y-4">
+        {/* 날짜 네비 */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-5 py-3 flex items-center justify-between">
+          <button onClick={() => goDate(addDays(targetDate, -1))}
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500">
+            <ChevronLeft size={18} />
+          </button>
+          <div className="flex items-center gap-3">
+            <input type="date" value={targetDate}
+              onChange={e => goDate(e.target.value)}
+              className="border-0 text-sm font-bold text-gray-800 bg-transparent focus:outline-none cursor-pointer"
+            />
+            <span className="text-sm text-gray-500">{fmtDate(targetDate)}</span>
+            {isToday && <span className="text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">오늘</span>}
+            <span className="text-xs font-bold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{restLabel}</span>
+          </div>
+          <button onClick={() => goDate(addDays(targetDate, 1))}
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500">
+            <ChevronRight size={18} />
+          </button>
+        </div>
+
+        {/* 쉬는 날 카드 */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 py-16 flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+            <Moon size={28} className="text-gray-400" />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-bold text-gray-700 mb-1">{restLabel} — 쉬는 날입니다</p>
+            <p className="text-sm text-gray-400">특근이 있는 경우 아래 버튼으로 처리해 주세요.</p>
+          </div>
+
+          {canManage && !showSpecialForm && (
+            <button
+              onClick={() => setShowSpecialForm(true)}
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
+            >
+              <Hammer size={15} />
+              특근 처리
+            </button>
+          )}
+
+          {canManage && showSpecialForm && (
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                autoFocus
+                value={specialReason}
+                onChange={e => setSpecialReason(e.target.value)}
+                placeholder="특근 사유 (예: 월말 생산 완료)"
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 w-64 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                onKeyDown={e => e.key === 'Enter' && addSpecialWorkday()}
+              />
+              <button
+                onClick={addSpecialWorkday}
+                disabled={savingSpecial}
+                className="flex items-center gap-1.5 bg-orange-500 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-orange-600 disabled:opacity-50 transition-colors"
+              >
+                {savingSpecial ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                확인
+              </button>
+              <button onClick={() => setShowSpecialForm(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={18} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // ── 미작성자 분류 ────────────────────────────────────────
   const nonSubmittersWithAttend = nonSubmitters.map(u => ({
     ...u,
@@ -270,6 +375,22 @@ export default function WorklogClient({
           {isToday && <span className="text-xs font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">오늘</span>}
           {targetDate > today && <span className="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">미래</span>}
           {isPast && <span className="text-xs font-bold bg-gray-200 text-gray-500 px-2 py-0.5 rounded-full">🔒 읽기 전용</span>}
+          {/* 특근 뱃지 (쉬는 날 + 특근 처리된 경우) */}
+          {isRestDay && specialWork && (
+            <span className="text-xs font-bold bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <Hammer size={10} />
+              특근 — {specialWork.reason}
+              {canManage && (
+                <button onClick={removeSpecialWorkday} className="ml-0.5 hover:text-red-600 transition-colors" title="특근 취소">
+                  <X size={10} />
+                </button>
+              )}
+            </span>
+          )}
+          {/* 평일 공휴일 뱃지 */}
+          {isRestDay && !specialWork && restLabel && (
+            <span className="text-xs font-bold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">{restLabel}</span>
+          )}
         </div>
         <button onClick={() => goDate(addDays(targetDate, 1))}
           className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500">

@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/getUser'
+import { checkRestDay } from '@/lib/holidays'
 import WorklogClient from './WorklogClient'
 import {
-  SAMPLE_WORK_LOGS, SAMPLE_USERS, SAMPLE_DEPARTMENTS, SAMPLE_ATTENDANCE,
+  SAMPLE_WORK_LOGS, SAMPLE_USERS, SAMPLE_DEPARTMENTS,
+  SAMPLE_ATTENDANCE, SAMPLE_SPECIAL_WORKDAYS,
 } from '@/lib/sample-data'
 
 export default async function WorklogsPage({
@@ -18,56 +20,84 @@ export default async function WorklogsPage({
   const today = new Date().toISOString().split('T')[0]
   const targetDate = params.date || today
 
-  let logs: any[]
-  let users: any[]
-  let departments: any[]
-  let attendance: any[]
+  // 쉬는 날 판정
+  const { isRest, label: restLabel } = checkRestDay(targetDate)
+
+  let logs: any[] = []
+  let users: any[] = []
+  let departments: any[] = []
+  let attendance: any[] = []
+  let specialWorkday: { date: string; reason: string } | null = null
 
   if (isSample) {
-    logs = SAMPLE_WORK_LOGS.map((l: any) => ({
-      ...l,
-      title: l.title ?? '',
-      log_type: l.log_type ?? '정기업무',
-      description: l.description ?? '',
-      is_planned: l.is_planned ?? true,
-      note: l.note ?? '',
-    }))
+    // 쉬는 날이라도 특근 여부 먼저 확인
+    specialWorkday = SAMPLE_SPECIAL_WORKDAYS.find(d => d.date === targetDate) ?? null
+
+    if (!isRest || specialWorkday) {
+      logs = SAMPLE_WORK_LOGS.map((l: any) => ({
+        ...l,
+        title: l.title ?? '',
+        log_type: l.log_type ?? '정기업무',
+        description: l.description ?? '',
+        is_planned: l.is_planned ?? true,
+        note: l.note ?? '',
+      }))
+      attendance = SAMPLE_ATTENDANCE
+    }
     users = SAMPLE_USERS
     departments = SAMPLE_DEPARTMENTS
-    attendance = SAMPLE_ATTENDANCE
   } else {
-    const [
-      { data: logsData },
-      { data: usersData },
-      { data: departmentsData },
-      { data: attendanceData },
-    ] = await Promise.all([
-      supabase
-        .from('work_logs')
-        .select('*, users(name, position, departments(name))')
-        .eq('log_date', targetDate)
-        .order('created_at', { ascending: true }),
-      supabase
+    // 특근 여부 먼저 확인 (쉬는 날이어도 fetch)
+    if (isRest) {
+      const { data } = await supabase
+        .from('special_workdays')
+        .select('date, reason')
+        .eq('date', targetDate)
+        .maybeSingle()
+      specialWorkday = data ?? null
+    }
+
+    if (!isRest || specialWorkday) {
+      const [
+        { data: logsData },
+        { data: usersData },
+        { data: departmentsData },
+        { data: attendanceData },
+      ] = await Promise.all([
+        supabase
+          .from('work_logs')
+          .select('*, users(name, position, departments(name))')
+          .eq('log_date', targetDate)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('users')
+          .select('id, name, position, department_id, departments(name)')
+          .eq('is_active', true)
+          .order('name'),
+        supabase
+          .from('departments')
+          .select('id, name')
+          .order('name'),
+        supabase
+          .from('attendance_records')
+          .select('id, user_id, date, type, note')
+          .eq('date', targetDate),
+      ])
+      logs = logsData ?? []
+      users = usersData ?? []
+      departments = departmentsData ?? []
+      attendance = attendanceData ?? []
+    } else {
+      // 쉬는 날인데 특근 아닌 경우: users만 fetch (특근 등록 폼에서 필요)
+      const { data: usersData } = await supabase
         .from('users')
         .select('id, name, position, department_id, departments(name)')
         .eq('is_active', true)
-        .order('name'),
-      supabase
-        .from('departments')
-        .select('id, name')
-        .order('name'),
-      supabase
-        .from('attendance_records')
-        .select('id, user_id, date, type, note')
-        .eq('date', targetDate),
-    ])
-    logs = logsData ?? []
-    users = usersData ?? []
-    departments = departmentsData ?? []
-    attendance = attendanceData ?? []
+        .order('name')
+      users = usersData ?? []
+    }
   }
 
-  // 미작성자: 오늘 로그가 없는 직원
   const submittedUserIds = new Set(logs.map((l: any) => l.user_id))
   const nonSubmitters = users.filter((u: any) => !submittedUserIds.has(u.id))
 
@@ -82,9 +112,11 @@ export default async function WorklogsPage({
           <h1 className="text-xl font-black text-gray-900">업무일지 · 근태</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {targetDate === today ? '오늘' : targetDate} ·{' '}
-            {total > 0
-              ? <span>달성 <strong className={pct >= 80 ? 'text-green-600' : pct >= 60 ? 'text-yellow-600' : 'text-red-600'}>{done}/{total}건 ({pct}%)</strong></span>
-              : '등록된 업무 없음'
+            {isRest && !specialWorkday
+              ? <span className="text-gray-400">{restLabel}</span>
+              : total > 0
+                ? <span>달성 <strong className={pct >= 80 ? 'text-green-600' : pct >= 60 ? 'text-yellow-600' : 'text-red-600'}>{done}/{total}건 ({pct}%)</strong></span>
+                : '등록된 업무 없음'
             }
           </p>
         </div>
@@ -100,6 +132,9 @@ export default async function WorklogsPage({
         today={today}
         role={role}
         isSample={isSample}
+        isRestDay={isRest}
+        restLabel={restLabel}
+        specialWorkday={specialWorkday}
       />
     </div>
   )

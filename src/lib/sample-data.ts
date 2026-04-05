@@ -358,6 +358,11 @@ export const SAMPLE_INSPECTION_HISTORIES = [
   { id: 2, inspection_id: 2, inspection_date: '2024-02-15', result: '합격', inspector_agency: '한국전기안전공사', certificate_url: null, next_due_date: '2025-02-15', note: '전압측정 정상' },
 ]
 
+// 특근 처리된 날짜 (2026-04-05 = 일요일이지만 특근)
+export const SAMPLE_SPECIAL_WORKDAYS = [
+  { date: '2026-04-05', reason: '4월 월말 생산 완료 특근' },
+]
+
 // Dashboard sample data
 export const SAMPLE_DELAYED_PROJECTS = SAMPLE_PROJECTS.filter(p => p.computed_status === '지연')
 export const SAMPLE_URGENT_INSPECTIONS = SAMPLE_INSPECTIONS.filter(i => i.status === '임박' || i.status === '만료')
