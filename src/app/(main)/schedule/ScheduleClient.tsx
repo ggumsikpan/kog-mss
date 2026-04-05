@@ -54,15 +54,17 @@ export default function ScheduleClient({
   currentMonth,
   currentYear,
   role,
+  isSample,
 }: {
   schedules: Schedule[]
   currentMonth: number
   currentYear: number
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
 
   // ── 뷰 모드 & 필터 ───────────────────────────────────────
   const [view,         setView]         = useState<'list' | 'calendar'>('list')
@@ -106,6 +108,7 @@ export default function ScheduleClient({
 
   async function addSchedule() {
     if (!form.title.trim()) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setAdding(true)
     const supabase = createClient()
     const { data, error } = await supabase
@@ -132,6 +135,7 @@ export default function ScheduleClient({
 
   async function deleteSchedule(id: number) {
     if (!confirm('삭제하시겠습니까?')) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     const supabase = createClient()
     await supabase.from('annual_schedules').update({ is_active: false }).eq('id', id)
     setSchedules(prev => prev.filter(s => s.id !== id))

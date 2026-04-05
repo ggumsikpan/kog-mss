@@ -27,8 +27,9 @@ export async function middleware(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  const isDemoMode = request.cookies.get('kog_demo')?.value === '1'
 
-  if (!user) {
+  if (!user && !isDemoMode) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

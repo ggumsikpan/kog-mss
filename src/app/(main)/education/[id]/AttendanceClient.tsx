@@ -14,14 +14,15 @@ interface Props {
   attendanceMap: Record<number, any>
   allUsers: User[]
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }
 
 export default function AttendanceClient({
-  educationId, educationStatus, targetUsers, attendanceMap: initMap, allUsers, role
+  educationId, educationStatus, targetUsers, attendanceMap: initMap, allUsers, role, isSample
 }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const [attMap, setAttMap] = useState<Record<number, any>>(initMap)
   const [togglingId, setTogglingId] = useState<number | null>(null)
 
@@ -37,6 +38,7 @@ export default function AttendanceClient({
   ]
 
   async function toggleAttendance(userId: number) {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setTogglingId(userId)
     const supabase = createClient()
     const existing = attMap[userId]
@@ -65,6 +67,7 @@ export default function AttendanceClient({
     if (!addUserId) return
     const user = allUsers.find(u => u.id === addUserId)
     if (!user || allDisplayUsers.find(u => u.id === user.id)) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setAdding(true)
     const supabase = createClient()
     const { data, error } = await supabase
@@ -204,6 +207,7 @@ export default function AttendanceClient({
             <div className="px-5 py-3 border-t border-gray-100 flex gap-3">
               <button
                 onClick={async () => {
+                  if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
                   const supabase = createClient()
                   for (const u of allDisplayUsers) {
                     const att = attMap[u.id]
@@ -221,6 +225,7 @@ export default function AttendanceClient({
               </button>
               <button
                 onClick={async () => {
+                  if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
                   const supabase = createClient()
                   for (const u of allDisplayUsers) {
                     const att = attMap[u.id]

@@ -35,6 +35,7 @@ interface Props {
   targetDate: string
   today: string
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }
 
 const LOG_TYPE_META: Record<LogType, { label: string; color: string; icon: React.ReactNode }> = {
@@ -53,10 +54,10 @@ function fmtDate(dateStr: string) {
   return d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
 }
 
-export default function WorklogClient({ logs: initLogs, users, departments, targetDate, today, role }: Props) {
+export default function WorklogClient({ logs: initLogs, users, departments, targetDate, today, role, isSample }: Props) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
 
   // ── 날짜 네비 ────────────────────────────────────────────
   function goDate(date: string) {
@@ -88,6 +89,7 @@ export default function WorklogClient({ logs: initLogs, users, departments, targ
 
   async function addLog() {
     if (!form.title.trim()) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setAdding(true)
     const supabase = createClient()
     const { data, error } = await supabase
@@ -108,6 +110,7 @@ export default function WorklogClient({ logs: initLogs, users, departments, targ
   const [noteDraft, setNoteDraft]   = useState('')
 
   async function toggleAchieved(log: WorkLog) {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setTogglingId(log.id)
     const supabase = createClient()
     const next = !log.achieved
@@ -123,6 +126,7 @@ export default function WorklogClient({ logs: initLogs, users, departments, targ
   }
 
   async function saveNote(id: number) {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     const supabase = createClient()
     await supabase.from('work_logs').update({ note: noteDraft }).eq('id', id)
     setLogs(prev => prev.map(l => l.id === id ? { ...l, note: noteDraft } : l))
@@ -134,6 +138,7 @@ export default function WorklogClient({ logs: initLogs, users, departments, targ
 
   async function deleteLog(id: number) {
     if (!confirm('업무를 삭제하시겠습니까?')) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setDeletingId(id)
     const supabase = createClient()
     const { error } = await supabase.from('work_logs').delete().eq('id', id)

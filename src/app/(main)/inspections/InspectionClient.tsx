@@ -31,13 +31,15 @@ export default function InspectionClient({
   departments,
   today,
   role,
+  isSample,
 }: {
   inspections: any[]
   departments: any[]
   today: string
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }) {
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const router = useRouter()
   const [, startTransition] = useTransition()
 
@@ -79,6 +81,7 @@ export default function InspectionClient({
       alert('검사명, 담당부서, 최근 검사일은 필수입니다.')
       return
     }
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setSaving(true)
     const supabase = createClient()
 

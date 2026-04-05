@@ -1,38 +1,49 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/getUser'
 import InspectionClient from './InspectionClient'
+import { SAMPLE_INSPECTIONS, SAMPLE_DEPARTMENTS } from '@/lib/sample-data'
 
 export default async function InspectionsPage() {
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: inspections }, { data: departments }] = await Promise.all([
-    supabase
-      .from('inspections')
-      .select('*, departments(name)')
-      .order('next_due_date', { ascending: true }),
-    supabase
-      .from('departments')
-      .select('id, name')
-      .order('name'),
-  ])
+  let enriched: any[]
+  let departments: any[]
 
-  // 상태 자동 계산
-  const enriched = (inspections ?? []).map((ins: any) => {
-    const daysUntil = Math.ceil(
-      (new Date(ins.next_due_date).getTime() - new Date(today).getTime()) / 86400000
-    )
-    let status: '정상' | '임박' | '만료'
-    if (daysUntil < 0)        status = '만료'
-    else if (daysUntil <= 30) status = '임박'
-    else                       status = '정상'
-    return { ...ins, days_until: daysUntil, status }
-  })
+  if (isSample) {
+    enriched = SAMPLE_INSPECTIONS
+    departments = SAMPLE_DEPARTMENTS
+  } else {
+    const [{ data: inspections }, { data: departmentsData }] = await Promise.all([
+      supabase
+        .from('inspections')
+        .select('*, departments(name)')
+        .order('next_due_date', { ascending: true }),
+      supabase
+        .from('departments')
+        .select('id, name')
+        .order('name'),
+    ])
 
-  const expiredCount = enriched.filter(i => i.status === '만료').length
-  const urgentCount  = enriched.filter(i => i.status === '임박').length
+    // 상태 자동 계산
+    enriched = (inspections ?? []).map((ins: any) => {
+      const daysUntil = Math.ceil(
+        (new Date(ins.next_due_date).getTime() - new Date(today).getTime()) / 86400000
+      )
+      let status: '정상' | '임박' | '만료'
+      if (daysUntil < 0)        status = '만료'
+      else if (daysUntil <= 30) status = '임박'
+      else                       status = '정상'
+      return { ...ins, days_until: daysUntil, status }
+    })
+    departments = departmentsData ?? []
+  }
+
+  const expiredCount = enriched.filter((i: any) => i.status === '만료').length
+  const urgentCount  = enriched.filter((i: any) => i.status === '임박').length
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -57,9 +68,10 @@ export default async function InspectionsPage() {
 
       <InspectionClient
         inspections={enriched}
-        departments={departments ?? []}
+        departments={departments}
         today={today}
         role={role}
+        isSample={isSample}
       />
     </div>
   )

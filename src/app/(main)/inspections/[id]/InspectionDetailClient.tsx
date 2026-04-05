@@ -12,13 +12,15 @@ export default function InspectionDetailClient({
   legalCycleMonths,
   today,
   role,
+  isSample,
 }: {
   inspectionId: number
   legalCycleMonths: number
   today: string
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }) {
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [saving, setSaving] = useState(false)
@@ -46,6 +48,7 @@ export default function InspectionDetailClient({
 
   async function handleSave() {
     if (!form.inspection_date) { alert('검사일을 선택해 주세요.'); return }
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setSaving(true)
     const supabase = createClient()
 
@@ -89,7 +92,7 @@ export default function InspectionDetailClient({
 
   const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
 
-  if (!canManage) return null
+  if (!canManage && !isSample) return null
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">

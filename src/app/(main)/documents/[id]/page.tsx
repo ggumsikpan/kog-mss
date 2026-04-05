@@ -5,6 +5,7 @@ import { formatDate } from '@/lib/utils'
 import { ArrowLeft, Calendar, User, Building2, Archive, FileText } from 'lucide-react'
 import Link from 'next/link'
 import DocumentDetailClient from './DocumentDetailClient'
+import { SAMPLE_DOCUMENTS, SAMPLE_DOC_HISTORIES, SAMPLE_USERS } from '@/lib/sample-data'
 
 const STATUS_META: Record<string, { color: string; bg: string }> = {
   '접수':   { color: 'text-blue-700',   bg: 'bg-blue-100' },
@@ -31,22 +32,36 @@ export default async function DocumentDetailPage({
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
 
-  const [{ data: doc }, { data: histories }, { data: users }] = await Promise.all([
-    supabase
-      .from('official_documents')
-      .select(`*, users!received_by(name, position), handler:users!handler_id(name, position), departments(name)`)
-      .eq('id', id)
-      .single(),
-    supabase
-      .from('document_histories')
-      .select('*, users(name, position)')
-      .eq('document_id', id)
-      .order('action_at', { ascending: true }),
-    supabase.from('users').select('id, name, position, departments(name)').eq('is_active', true).order('name'),
-  ])
+  let doc: any
+  let histories: any[]
+  let users: any[]
 
-  if (!doc) notFound()
+  if (isSample) {
+    doc = SAMPLE_DOCUMENTS[0]
+    histories = SAMPLE_DOC_HISTORIES.filter(h => h.document_id === doc.id)
+    users = SAMPLE_USERS
+  } else {
+    const [{ data: docData }, { data: historiesData }, { data: usersData }] = await Promise.all([
+      supabase
+        .from('official_documents')
+        .select(`*, users!received_by(name, position), handler:users!handler_id(name, position), departments(name)`)
+        .eq('id', id)
+        .single(),
+      supabase
+        .from('document_histories')
+        .select('*, users(name, position)')
+        .eq('document_id', id)
+        .order('action_at', { ascending: true }),
+      supabase.from('users').select('id, name, position, departments(name)').eq('is_active', true).order('name'),
+    ])
+
+    if (!docData) notFound()
+    doc = docData
+    histories = historiesData ?? []
+    users = usersData ?? []
+  }
 
   const today = new Date().toISOString().split('T')[0]
   const daysSince = Math.floor(
@@ -158,9 +173,10 @@ export default async function DocumentDetailPage({
         <div className="lg:col-span-2">
           <DocumentDetailClient
             doc={doc}
-            users={users ?? []}
+            users={users}
             documentId={Number(id)}
             role={role}
+            isSample={isSample}
           />
         </div>
       </div>

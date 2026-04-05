@@ -29,15 +29,23 @@ export default function Sidebar({
   userName,
   userRole,
   deptName,
+  isSample = false,
 }: {
   userName: string
   userRole: string
   deptName: string
+  isSample?: boolean
 }) {
   const pathname = usePathname()
   const router   = useRouter()
 
   async function handleLogout() {
+    if (isSample) {
+      document.cookie = 'kog_demo=; path=/; max-age=0'
+      router.push('/login')
+      router.refresh()
+      return
+    }
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
@@ -85,9 +93,10 @@ export default function Sidebar({
       <div className="px-4 py-4 border-t border-white/10">
         <div className="flex items-center gap-2 mb-0.5">
           <span className="text-white text-sm font-semibold">{userName || '사용자'}</span>
-          <span className="text-xs bg-white/10 text-white/60 px-1.5 py-0.5 rounded">
-            {ROLE_LABEL[userRole] ?? userRole}
-          </span>
+          {isSample
+            ? <span className="text-xs bg-amber-400 text-amber-900 font-bold px-1.5 py-0.5 rounded">SAMPLE</span>
+            : <span className="text-xs bg-white/10 text-white/60 px-1.5 py-0.5 rounded">{ROLE_LABEL[userRole] ?? userRole}</span>
+          }
         </div>
         <p className="text-white/40 text-xs">{deptName}</p>
         <button onClick={handleLogout}

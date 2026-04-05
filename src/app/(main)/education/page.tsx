@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/getUser'
 import { calcDaysUntil, formatDate } from '@/lib/utils'
 import EducationClient from './EducationClient'
+import { SAMPLE_EDUCATIONS, SAMPLE_DEPARTMENTS } from '@/lib/sample-data'
 
 export default async function EducationPage({
   searchParams,
@@ -12,38 +13,55 @@ export default async function EducationPage({
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
 
-  let query = supabase
-    .from('education_schedules')
-    .select(`
-      *,
-      education_targets(department_id, departments(name))
-    `)
-    .order('scheduled_date', { ascending: true })
+  let enriched: any[]
+  let departments: any[]
 
-  if (params.status && params.status !== 'all') query = query.eq('status', params.status)
-  if (params.type   && params.type   !== 'all') query = query.eq('edu_type', params.type)
+  if (isSample) {
+    let filtered = [...SAMPLE_EDUCATIONS]
+    if (params.status && params.status !== 'all') filtered = filtered.filter(e => e.status === params.status)
+    if (params.type   && params.type   !== 'all') filtered = filtered.filter(e => e.edu_type === params.type)
+    if (params.dept   && params.dept   !== 'all') {
+      const deptId = Number(params.dept)
+      filtered = filtered.filter(e => e.education_targets?.some((t: any) => t.department_id === deptId))
+    }
+    enriched = filtered
+    departments = SAMPLE_DEPARTMENTS
+  } else {
+    let query = supabase
+      .from('education_schedules')
+      .select(`
+        *,
+        education_targets(department_id, departments(name))
+      `)
+      .order('scheduled_date', { ascending: true })
 
-  const [{ data: educations }, { data: departments }] = await Promise.all([
-    query,
-    supabase.from('departments').select('id, name').order('name'),
-  ])
+    if (params.status && params.status !== 'all') query = query.eq('status', params.status)
+    if (params.type   && params.type   !== 'all') query = query.eq('edu_type', params.type)
 
-  // 부서 필터 (education_targets 기준)
-  let filtered = educations ?? []
-  if (params.dept && params.dept !== 'all') {
-    const deptId = Number(params.dept)
-    filtered = filtered.filter((e: any) =>
-      e.education_targets?.some((t: any) => t.department_id === deptId)
-    )
+    const [{ data: educations }, { data: departmentsData }] = await Promise.all([
+      query,
+      supabase.from('departments').select('id, name').order('name'),
+    ])
+
+    // 부서 필터 (education_targets 기준)
+    let filtered = educations ?? []
+    if (params.dept && params.dept !== 'all') {
+      const deptId = Number(params.dept)
+      filtered = filtered.filter((e: any) =>
+        e.education_targets?.some((t: any) => t.department_id === deptId)
+      )
+    }
+
+    // D-day 계산 추가
+    enriched = filtered.map((e: any) => ({
+      ...e,
+      days_until: calcDaysUntil(e.scheduled_date),
+    }))
+    departments = departmentsData ?? []
   }
-
-  // D-day 계산 추가
-  const enriched = filtered.map((e: any) => ({
-    ...e,
-    days_until: calcDaysUntil(e.scheduled_date),
-  }))
 
   // 이달 예정 수
   const thisMonth = today.slice(0, 7)
@@ -72,9 +90,10 @@ export default async function EducationPage({
 
       <EducationClient
         educations={enriched}
-        departments={departments ?? []}
+        departments={departments}
         today={today}
         role={role}
+        isSample={isSample}
       />
     </div>
   )

@@ -1,9 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/getUser'
 import { calcDelayDays, calcDaysUntil, formatDate, getStatusColor } from '@/lib/utils'
 import { Project, Inspection, HrEvent, AnnualSchedule } from '@/types'
 import {
   AlertTriangle, Bell, ChevronRight, ShieldCheck, FileWarning
 } from 'lucide-react'
+import {
+  SAMPLE_DELAYED_PROJECTS,
+  SAMPLE_URGENT_INSPECTIONS,
+  SAMPLE_PENDING_DOCS,
+  SAMPLE_THIS_MONTH_EDUCATIONS,
+  SAMPLE_DEPT_STATS,
+} from '@/lib/sample-data'
 
 // ── 헬퍼 컴포넌트 ──────────────────────────────────────
 
@@ -65,72 +73,91 @@ function SectionCard({ title, children, href }: { title: string; children: React
 
 export default async function DashboardPage() {
   const supabase = await createClient()
+  const currentUser = await getCurrentUser()
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
 
-  // 1. 지연 프로젝트
-  const { data: delayedProjects } = await supabase
-    .from('projects')
-    .select('*, departments(name), users(name)')
-    .lt('due_date', today)
-    .neq('status', '완료')
-    .order('due_date', { ascending: true })
+  let delayed: any[]
+  let inspections: any[]
+  let docs: any[]
+  let notifs: any[]
+  let deptStats: Record<string, { name: string; total: number; done: number }>
+  let educations: any[]
 
-  // 2. 이달 임박 정기검사 (D-30 이내)
-  const d30 = new Date(); d30.setDate(d30.getDate() + 30)
-  const { data: urgentInspections } = await supabase
-    .from('inspections')
-    .select('*, departments(name)')
-    .lte('next_due_date', d30.toISOString().split('T')[0])
-    .neq('status', '정상')
-    .order('next_due_date', { ascending: true })
+  if (isSample) {
+    delayed = SAMPLE_DELAYED_PROJECTS
+    inspections = SAMPLE_URGENT_INSPECTIONS
+    docs = SAMPLE_PENDING_DOCS
+    notifs = []
+    deptStats = SAMPLE_DEPT_STATS
+    educations = SAMPLE_THIS_MONTH_EDUCATIONS
+  } else {
+    // 1. 지연 프로젝트
+    const { data: delayedProjects } = await supabase
+      .from('projects')
+      .select('*, departments(name), users(name)')
+      .lt('due_date', today)
+      .neq('status', '완료')
+      .order('due_date', { ascending: true })
 
-  // 3. 이달 교육 예정
-  const monthStart = today.slice(0, 7) + '-01'
-  const monthEnd   = today.slice(0, 7) + '-31'
-  const { data: educations } = await supabase
-    .from('education_schedules')
-    .select('*')
-    .gte('scheduled_date', monthStart)
-    .lte('scheduled_date', monthEnd)
-    .eq('status', '예정')
+    // 2. 이달 임박 정기검사 (D-30 이내)
+    const d30 = new Date(); d30.setDate(d30.getDate() + 30)
+    const { data: urgentInspections } = await supabase
+      .from('inspections')
+      .select('*, departments(name)')
+      .lte('next_due_date', d30.toISOString().split('T')[0])
+      .neq('status', '정상')
+      .order('next_due_date', { ascending: true })
 
-  // 4. 미처리 공문서
-  const { data: pendingDocs } = await supabase
-    .from('official_documents')
-    .select('*, users!received_by(name), departments(name)')
-    .in('status', ['접수', '처리중'])
-    .order('received_date', { ascending: true })
+    // 3. 이달 교육 예정
+    const monthStart = today.slice(0, 7) + '-01'
+    const monthEnd   = today.slice(0, 7) + '-31'
+    const { data: educationsData } = await supabase
+      .from('education_schedules')
+      .select('*')
+      .gte('scheduled_date', monthStart)
+      .lte('scheduled_date', monthEnd)
+      .eq('status', '예정')
 
-  // 5. 전체 알림
-  const { data: notifications } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('is_read', false)
-    .order('created_at', { ascending: false })
-    .limit(10)
+    // 4. 미처리 공문서
+    const { data: pendingDocs } = await supabase
+      .from('official_documents')
+      .select('*, users!received_by(name), departments(name)')
+      .in('status', ['접수', '처리중'])
+      .order('received_date', { ascending: true })
 
-  // 6. 부서별 업무달성률 (이달)
-  const { data: workLogs } = await supabase
-    .from('work_logs')
-    .select('achieved, users(department_id, departments(name))')
-    .gte('log_date', monthStart)
-    .lte('log_date', monthEnd)
+    // 5. 전체 알림
+    const { data: notifications } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('is_read', false)
+      .order('created_at', { ascending: false })
+      .limit(10)
 
-  // 부서별 달성률 계산
-  const deptStats: Record<string, { name: string; total: number; done: number }> = {}
-  workLogs?.forEach((log: any) => {
-    const deptId = log.users?.department_id
-    const deptName = log.users?.departments?.name || '미분류'
-    if (!deptId) return
-    if (!deptStats[deptId]) deptStats[deptId] = { name: deptName, total: 0, done: 0 }
-    deptStats[deptId].total++
-    if (log.achieved) deptStats[deptId].done++
-  })
+    // 6. 부서별 업무달성률 (이달)
+    const { data: workLogs } = await supabase
+      .from('work_logs')
+      .select('achieved, users(department_id, departments(name))')
+      .gte('log_date', monthStart)
+      .lte('log_date', monthEnd)
 
-  const delayed = delayedProjects || []
-  const inspections = urgentInspections || []
-  const docs = pendingDocs || []
-  const notifs = notifications || []
+    // 부서별 달성률 계산
+    deptStats = {}
+    workLogs?.forEach((log: any) => {
+      const deptId = log.users?.department_id
+      const deptName = log.users?.departments?.name || '미분류'
+      if (!deptId) return
+      if (!deptStats[deptId]) deptStats[deptId] = { name: deptName, total: 0, done: 0 }
+      deptStats[deptId].total++
+      if (log.achieved) deptStats[deptId].done++
+    })
+
+    delayed = delayedProjects || []
+    inspections = urgentInspections || []
+    docs = pendingDocs || []
+    notifs = notifications || []
+    educations = educationsData || []
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -150,7 +177,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard label="🔴 지연 프로젝트" value={delayed.length} sub="즉시 조치 필요" color="red" />
         <KpiCard label="🟡 이달 검사 임박" value={inspections.length} sub="D-30 이내" color="yellow" />
-        <KpiCard label="📚 이달 교육 예정" value={educations?.length ?? 0} sub={`${today.slice(0,7)} 기준`} color="blue" />
+        <KpiCard label="📚 이달 교육 예정" value={educations.length} sub={`${today.slice(0,7)} 기준`} color="blue" />
         <KpiCard label="📄 미처리 공문서" value={docs.length} sub="접수·처리중" color={docs.length > 0 ? 'yellow' : 'green'} />
       </div>
 

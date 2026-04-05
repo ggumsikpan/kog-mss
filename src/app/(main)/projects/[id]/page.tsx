@@ -5,6 +5,7 @@ import { calcDelayDays, formatDate, getStatusColor } from '@/lib/utils'
 import { AlertTriangle, ArrowLeft, Calendar, User, Building2 } from 'lucide-react'
 import Link from 'next/link'
 import ProjectDetailClient from './ProjectDetailClient'
+import { SAMPLE_PROJECTS, SAMPLE_PROJECT_MILESTONES, SAMPLE_PROJECT_MEMBERS } from '@/lib/sample-data'
 
 export default async function ProjectDetailPage({
   params,
@@ -15,33 +16,47 @@ export default async function ProjectDetailPage({
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: project }, { data: milestones }, { data: members }] = await Promise.all([
-    supabase
-      .from('projects')
-      .select('*, departments(name), users(name, position)')
-      .eq('id', id)
-      .single(),
-    supabase
-      .from('project_milestones')
-      .select('*')
-      .eq('project_id', id)
-      .order('due_date', { ascending: true }),
-    supabase
-      .from('project_members')
-      .select('*, users(name, position, departments(name))')
-      .eq('project_id', id),
-  ])
+  let project: any
+  let milestones: any[]
+  let members: any[]
 
-  if (!project) notFound()
+  if (isSample) {
+    project = SAMPLE_PROJECTS[0]
+    milestones = SAMPLE_PROJECT_MILESTONES.filter(m => m.project_id === project.id)
+    members = SAMPLE_PROJECT_MEMBERS.filter(m => m.project_id === project.id)
+  } else {
+    const [{ data: projectData }, { data: milestonesData }, { data: membersData }] = await Promise.all([
+      supabase
+        .from('projects')
+        .select('*, departments(name), users(name, position)')
+        .eq('id', id)
+        .single(),
+      supabase
+        .from('project_milestones')
+        .select('*')
+        .eq('project_id', id)
+        .order('due_date', { ascending: true }),
+      supabase
+        .from('project_members')
+        .select('*, users(name, position, departments(name))')
+        .eq('project_id', id),
+    ])
+
+    if (!projectData) notFound()
+    project = projectData
+    milestones = milestonesData ?? []
+    members = membersData ?? []
+  }
 
   const isDelayed = project.due_date < today && project.status !== '완료'
   const delayDays = isDelayed ? calcDelayDays(project.due_date) : 0
   const computedStatus = isDelayed ? '지연' : project.status
 
-  const totalMs = milestones?.length ?? 0
-  const doneMs = milestones?.filter(m => m.status === '완료').length ?? 0
+  const totalMs = milestones.length ?? 0
+  const doneMs = milestones.filter((m: any) => m.status === '완료').length ?? 0
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -130,10 +145,11 @@ export default async function ProjectDetailPage({
       {/* 클라이언트 인터랙션 영역 */}
       <ProjectDetailClient
         project={project}
-        milestones={milestones ?? []}
-        members={members ?? []}
+        milestones={milestones}
+        members={members}
         isDelayed={isDelayed}
         role={role}
+        isSample={isSample}
       />
     </div>
   )

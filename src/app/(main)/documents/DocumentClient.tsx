@@ -55,16 +55,18 @@ export default function DocumentClient({
   departments,
   today,
   role,
+  isSample,
 }: {
   docs: Doc[]
   users: any[]
   departments: any[]
   today: string
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const [docs, setDocs] = useState<Doc[]>(initDocs)
 
   // ── 필터 ─────────────────────────────────────────────────
@@ -96,6 +98,7 @@ export default function DocumentClient({
 
   async function addDocument() {
     if (!form.title.trim() || !form.received_date) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setAdding(true)
     const supabase = createClient()
 

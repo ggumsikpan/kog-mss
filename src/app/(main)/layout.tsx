@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/getUser'
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const currentUser = await getCurrentUser()
+  const isSample = currentUser?.is_sample ?? false
 
   return (
     <div className="flex min-h-screen">
@@ -14,8 +15,15 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             ? currentUser.departments[0]?.name
             : currentUser?.departments?.name ?? ''
         }
+        isSample={isSample}
       />
       <main className="flex-1 overflow-auto flex flex-col">
+        {isSample && (
+          <div className="bg-amber-400 text-amber-900 text-xs font-bold text-center py-2 px-4 flex items-center justify-center gap-2 sticky top-0 z-40">
+            <span>👁️</span>
+            <span>샘플 모드 — 실제 데이터가 아닙니다. 읽기 전용으로 동작합니다.</span>
+          </div>
+        )}
         <div className="flex-1">
           {children}
         </div>

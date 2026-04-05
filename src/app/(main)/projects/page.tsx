@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/getUser'
 import { calcDelayDays, formatDate, getStatusColor } from '@/lib/utils'
 import { AlertTriangle, Plus, Filter } from 'lucide-react'
 import Link from 'next/link'
+import { SAMPLE_PROJECTS } from '@/lib/sample-data'
 
 export default async function ProjectsPage({
   searchParams,
@@ -13,25 +14,35 @@ export default async function ProjectsPage({
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
-  const canManage = role === 'admin' || role === 'manager'
+  const isSample = currentUser?.is_sample ?? false
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const today = new Date().toISOString().split('T')[0]
 
-  let query = supabase
-    .from('projects')
-    .select('*, departments(name), users(name, position)')
-    .order('due_date', { ascending: true })
+  let enriched: any[]
 
-  if (params.status) query = query.eq('status', params.status)
-  if (params.category) query = query.eq('category', params.category)
+  if (isSample) {
+    let filtered = [...SAMPLE_PROJECTS]
+    if (params.status) filtered = filtered.filter(p => p.computed_status === params.status)
+    if (params.category) filtered = filtered.filter(p => p.category === params.category)
+    enriched = filtered
+  } else {
+    let query = supabase
+      .from('projects')
+      .select('*, departments(name), users(name, position)')
+      .order('due_date', { ascending: true })
 
-  const { data: projects } = await query
+    if (params.status) query = query.eq('status', params.status)
+    if (params.category) query = query.eq('category', params.category)
 
-  // 지연 자동 체크 (due_date 지났고 완료 아닌 것)
-  const enriched = (projects || []).map((p: any) => ({
-    ...p,
-    computed_status: p.status !== '완료' && p.due_date < today ? '지연' : p.status,
-    delay_days: p.due_date < today && p.status !== '완료' ? calcDelayDays(p.due_date) : 0,
-  }))
+    const { data: projects } = await query
+
+    // 지연 자동 체크 (due_date 지났고 완료 아닌 것)
+    enriched = (projects || []).map((p: any) => ({
+      ...p,
+      computed_status: p.status !== '완료' && p.due_date < today ? '지연' : p.status,
+      delay_days: p.due_date < today && p.status !== '완료' ? calcDelayDays(p.due_date) : 0,
+    }))
+  }
 
   const categories = ['VSM', '영업', '품질', '기타']
   const statuses = ['전체', '진행중', '지연', '완료', '보류']
@@ -43,7 +54,7 @@ export default async function ProjectsPage({
           <h1 className="text-xl font-black text-gray-900">프로젝트 관리</h1>
           <p className="text-sm text-gray-400 mt-0.5">총 {enriched.length}개 프로젝트</p>
         </div>
-        {canManage && (
+        {canManage && !isSample && (
           <Link
             href="/projects/new"
             className="flex items-center gap-2 bg-[#1A2744] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#243560] transition-colors"

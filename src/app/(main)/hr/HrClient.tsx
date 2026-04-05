@@ -50,16 +50,18 @@ export default function HrClient({
   departments,
   today,
   role,
+  isSample,
 }: {
   events: HrEvent[]
   users: User[]
   departments: Department[]
   today: string
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const [events, setEvents] = useState<HrEvent[]>(initEvents)
 
   // ── 필터 ─────────────────────────────────────────────────
@@ -81,6 +83,7 @@ export default function HrClient({
   const [togglingId, setTogglingId] = useState<number | null>(null)
 
   async function toggleStatus(ev: HrEvent) {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setTogglingId(ev.id)
     const supabase = createClient()
     const next: EventStatus = ev.status === '완료' ? '대기' : '완료'
@@ -98,6 +101,7 @@ export default function HrClient({
 
   async function deleteEvent(id: number) {
     if (!confirm('삭제하시겠습니까?')) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setDeletingId(id)
     const supabase = createClient()
     await supabase.from('hr_events').delete().eq('id', id)
@@ -118,6 +122,7 @@ export default function HrClient({
 
   async function addEvent() {
     if (!form.due_date) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setAdding(true)
     const supabase = createClient()
     const { data, error } = await supabase

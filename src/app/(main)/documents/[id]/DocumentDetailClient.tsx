@@ -31,13 +31,15 @@ export default function DocumentDetailClient({
   users,
   documentId,
   role,
+  isSample,
 }: {
   doc: any
   users: any[]
   documentId: number
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }) {
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [currentStatus, setCurrentStatus] = useState<DocStatus>(doc.status)
@@ -50,6 +52,7 @@ export default function DocumentDetailClient({
   const currentStepIdx = STATUS_STEPS.indexOf(currentStatus)
 
   async function changeStatus(next: DocStatus, action: string) {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setProcessing(action)
     const supabase = createClient()
 
@@ -77,6 +80,7 @@ export default function DocumentDetailClient({
   }
 
   async function saveHandler() {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setSavingHandler(true)
     const supabase = createClient()
     await supabase.from('official_documents').update({ handler_id: handlerId }).eq('id', documentId)

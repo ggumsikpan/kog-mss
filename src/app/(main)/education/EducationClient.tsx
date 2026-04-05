@@ -59,15 +59,17 @@ export default function EducationClient({
   departments,
   today,
   role,
+  isSample,
 }: {
   educations: Education[]
   departments: Department[]
   today: string
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
-  const canManage = role === 'admin' || role === 'manager'
+  const canManage = isSample || role === 'admin' || role === 'manager'
 
   // ── 필터 ─────────────────────────────────────────────────
   const [filterDept,   setFilterDept]   = useState<number | 'all'>('all')
@@ -107,6 +109,7 @@ export default function EducationClient({
 
   async function addEducation() {
     if (!form.title.trim() || !form.scheduled_date) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setAdding(true)
     const supabase = createClient()
 

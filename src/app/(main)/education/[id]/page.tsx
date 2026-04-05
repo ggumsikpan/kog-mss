@@ -5,6 +5,10 @@ import { formatDate, calcDaysUntil } from '@/lib/utils'
 import { ArrowLeft, CalendarDays, MapPin, User, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import AttendanceClient from './AttendanceClient'
+import {
+  SAMPLE_EDU_DETAIL, SAMPLE_EDU_TARGETS, SAMPLE_EDU_ATTENDANCE_MAP,
+  SAMPLE_EDU_TARGET_USERS, SAMPLE_USERS,
+} from '@/lib/sample-data'
 
 export default async function EducationDetailPage({
   params,
@@ -15,37 +19,54 @@ export default async function EducationDetailPage({
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: edu }, { data: targets }, { data: attendances }, { data: allUsers }] = await Promise.all([
-    supabase.from('education_schedules').select('*').eq('id', id).single(),
-    supabase.from('education_targets')
-      .select('department_id, departments(id, name)')
-      .eq('education_id', id),
-    supabase.from('education_attendances')
-      .select('*, users(name, position, departments(name))')
-      .eq('education_id', id),
-    supabase.from('users')
-      .select('id, name, position, department_id, departments(name)')
-      .eq('is_active', true)
-      .order('name'),
-  ])
+  let edu: any
+  let targets: any[]
+  let attendanceMap: Record<number, any>
+  let targetUsers: any[]
+  let allUsers: any[]
+  let attendedCount: number
 
-  if (!edu) notFound()
+  if (isSample) {
+    edu = SAMPLE_EDU_DETAIL
+    targets = SAMPLE_EDU_TARGETS
+    attendanceMap = SAMPLE_EDU_ATTENDANCE_MAP
+    targetUsers = SAMPLE_EDU_TARGET_USERS
+    allUsers = SAMPLE_USERS
+    attendedCount = Object.values(SAMPLE_EDU_ATTENDANCE_MAP).filter(a => a?.attended).length
+  } else {
+    const [{ data: eduData }, { data: targetsData }, { data: attendances }, { data: allUsersData }] = await Promise.all([
+      supabase.from('education_schedules').select('*').eq('id', id).single(),
+      supabase.from('education_targets')
+        .select('department_id, departments(id, name)')
+        .eq('education_id', id),
+      supabase.from('education_attendances')
+        .select('*, users(name, position, departments(name))')
+        .eq('education_id', id),
+      supabase.from('users')
+        .select('id, name, position, department_id, departments(name)')
+        .eq('is_active', true)
+        .order('name'),
+    ])
+
+    if (!eduData) notFound()
+    edu = eduData
+    targets = targetsData ?? []
+    allUsers = allUsersData ?? []
+
+    const targetDeptIds = targets.map((t: any) => t.department_id)
+    targetUsers = allUsers.filter((u: any) => targetDeptIds.includes(u.department_id))
+
+    attendanceMap = {}
+    attendances?.forEach((a: any) => { attendanceMap[a.user_id] = a })
+    attendedCount = attendances?.filter((a: any) => a.attended).length ?? 0
+  }
 
   const daysUntil = calcDaysUntil(edu.scheduled_date)
   const isOverdue = edu.scheduled_date < today && edu.status === '예정'
-  const targetDeptIds = targets?.map((t: any) => t.department_id) ?? []
-
-  // 대상 부서 직원만 필터
-  const targetUsers = allUsers?.filter(u => targetDeptIds.includes(u.department_id)) ?? []
-
-  // 참석자 지도 (user_id → attendance)
-  const attendanceMap: Record<number, any> = {}
-  attendances?.forEach((a: any) => { attendanceMap[a.user_id] = a })
-
-  const attendedCount = attendances?.filter(a => a.attended).length ?? 0
-  const totalTarget   = targetUsers.length
+  const totalTarget = targetUsers.length
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -164,8 +185,9 @@ export default async function EducationDetailPage({
         educationStatus={edu.status}
         targetUsers={targetUsers}
         attendanceMap={attendanceMap}
-        allUsers={allUsers ?? []}
+        allUsers={allUsers}
         role={role}
+        isSample={isSample}
       />
     </div>
   )

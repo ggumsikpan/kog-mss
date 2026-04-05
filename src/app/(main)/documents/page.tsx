@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/getUser'
 import DocumentClient from './DocumentClient'
+import { SAMPLE_DOCUMENTS, SAMPLE_USERS, SAMPLE_DEPARTMENTS } from '@/lib/sample-data'
 
 export default async function DocumentsPage({
   searchParams,
@@ -11,37 +12,53 @@ export default async function DocumentsPage({
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
 
-  let query = supabase
-    .from('official_documents')
-    .select(`
-      *,
-      users!received_by(name, position),
-      handler:users!handler_id(name),
-      departments(name)
-    `)
-    .order('received_date', { ascending: false })
+  let enriched: any[]
+  let users: any[]
+  let departments: any[]
 
-  if (params.status   && params.status   !== 'all') query = query.eq('status', params.status)
-  if (params.category && params.category !== 'all') query = query.eq('category', params.category)
+  if (isSample) {
+    let filtered = [...SAMPLE_DOCUMENTS]
+    if (params.status   && params.status   !== 'all') filtered = filtered.filter(d => d.status === params.status)
+    if (params.category && params.category !== 'all') filtered = filtered.filter(d => d.category === params.category)
+    enriched = filtered
+    users = SAMPLE_USERS
+    departments = SAMPLE_DEPARTMENTS
+  } else {
+    let query = supabase
+      .from('official_documents')
+      .select(`
+        *,
+        users!received_by(name, position),
+        handler:users!handler_id(name),
+        departments(name)
+      `)
+      .order('received_date', { ascending: false })
 
-  const [{ data: docs }, { data: users }, { data: departments }] = await Promise.all([
-    query,
-    supabase.from('users').select('id, name, position, departments(name)').eq('is_active', true).order('name'),
-    supabase.from('departments').select('id, name').order('name'),
-  ])
+    if (params.status   && params.status   !== 'all') query = query.eq('status', params.status)
+    if (params.category && params.category !== 'all') query = query.eq('category', params.category)
 
-  // 3일 이상 미처리 계산
-  const enriched = (docs ?? []).map((d: any) => {
-    const daysSince = Math.floor(
-      (new Date(today).getTime() - new Date(d.received_date).getTime()) / 86400000
-    )
-    return { ...d, days_since: daysSince }
-  })
+    const [{ data: docs }, { data: usersData }, { data: departmentsData }] = await Promise.all([
+      query,
+      supabase.from('users').select('id, name, position, departments(name)').eq('is_active', true).order('name'),
+      supabase.from('departments').select('id, name').order('name'),
+    ])
 
-  const pendingCount  = enriched.filter(d => ['접수', '처리중'].includes(d.status)).length
-  const overdueCount  = enriched.filter(d => ['접수', '처리중'].includes(d.status) && d.days_since >= 3).length
+    // 3일 이상 미처리 계산
+    enriched = (docs ?? []).map((d: any) => {
+      const daysSince = Math.floor(
+        (new Date(today).getTime() - new Date(d.received_date).getTime()) / 86400000
+      )
+      return { ...d, days_since: daysSince }
+    })
+    users = usersData ?? []
+    departments = departmentsData ?? []
+  }
+
+  const pendingCount  = enriched.filter((d: any) => ['접수', '처리중'].includes(d.status)).length
+  const overdueCount  = enriched.filter((d: any) => ['접수', '처리중'].includes(d.status) && d.days_since >= 3).length
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -59,10 +76,11 @@ export default async function DocumentsPage({
 
       <DocumentClient
         docs={enriched}
-        users={users ?? []}
-        departments={departments ?? []}
+        users={users}
+        departments={departments}
         today={today}
         role={role}
+        isSample={isSample}
       />
     </div>
   )

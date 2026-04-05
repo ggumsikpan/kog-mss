@@ -1,40 +1,55 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/getUser'
 import HrClient from './HrClient'
+import { SAMPLE_HR_EVENTS, SAMPLE_USERS, SAMPLE_DEPARTMENTS } from '@/lib/sample-data'
 
 export default async function HrPage() {
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
-  const d30   = new Date(); d30.setDate(d30.getDate() + 30)
 
-  const [{ data: events }, { data: users }, { data: departments }] = await Promise.all([
-    supabase
-      .from('hr_events')
-      .select('*, users(id, name, position, joined_at, departments(name))')
-      .order('due_date', { ascending: true }),
-    supabase
-      .from('users')
-      .select('id, name, position, joined_at, department_id, departments(name)')
-      .eq('is_active', true)
-      .order('name'),
-    supabase
-      .from('departments')
-      .select('id, name')
-      .order('name'),
-  ])
+  let enriched: any[]
+  let users: any[]
+  let departments: any[]
 
-  // D-day 계산
-  const enriched = (events ?? []).map((e: any) => {
-    const diff = Math.ceil(
-      (new Date(e.due_date).getTime() - new Date(today).getTime()) / 86400000
-    )
-    return { ...e, days_until: diff }
-  })
+  if (isSample) {
+    enriched = SAMPLE_HR_EVENTS
+    users = SAMPLE_USERS
+    departments = SAMPLE_DEPARTMENTS
+  } else {
+    const d30 = new Date(); d30.setDate(d30.getDate() + 30)
 
-  const urgentCount  = enriched.filter(e => e.days_until >= 0 && e.days_until <= 30 && e.status === '대기').length
-  const overdueCount = enriched.filter(e => e.days_until < 0  && e.status === '대기').length
+    const [{ data: events }, { data: usersData }, { data: departmentsData }] = await Promise.all([
+      supabase
+        .from('hr_events')
+        .select('*, users(id, name, position, joined_at, departments(name))')
+        .order('due_date', { ascending: true }),
+      supabase
+        .from('users')
+        .select('id, name, position, joined_at, department_id, departments(name)')
+        .eq('is_active', true)
+        .order('name'),
+      supabase
+        .from('departments')
+        .select('id, name')
+        .order('name'),
+    ])
+
+    // D-day 계산
+    enriched = (events ?? []).map((e: any) => {
+      const diff = Math.ceil(
+        (new Date(e.due_date).getTime() - new Date(today).getTime()) / 86400000
+      )
+      return { ...e, days_until: diff }
+    })
+    users = usersData ?? []
+    departments = departmentsData ?? []
+  }
+
+  const urgentCount  = enriched.filter((e: any) => e.days_until >= 0 && e.days_until <= 30 && e.status === '대기').length
+  const overdueCount = enriched.filter((e: any) => e.days_until < 0  && e.status === '대기').length
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -52,10 +67,11 @@ export default async function HrPage() {
 
       <HrClient
         events={enriched}
-        users={users ?? []}
-        departments={departments ?? []}
+        users={users}
+        departments={departments}
         today={today}
         role={role}
+        isSample={isSample}
       />
     </div>
   )

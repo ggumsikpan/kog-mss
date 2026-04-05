@@ -31,10 +31,11 @@ interface Props {
   members: Member[]
   isDelayed: boolean
   role: 'admin' | 'manager' | 'employee'
+  isSample?: boolean
 }
 
-export default function ProjectDetailClient({ project, milestones: initMilestones, members, isDelayed, role }: Props) {
-  const canManage = role === 'admin' || role === 'manager'
+export default function ProjectDetailClient({ project, milestones: initMilestones, members, isDelayed, role, isSample }: Props) {
+  const canManage = isSample || role === 'admin' || role === 'manager'
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -45,6 +46,7 @@ export default function ProjectDetailClient({ project, milestones: initMilestone
   const [savingProgress, setSavingProgress] = useState(false)
 
   async function saveProgress() {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setSavingProgress(true)
     const supabase = createClient()
     const { error } = await supabase
@@ -72,6 +74,7 @@ export default function ProjectDetailClient({ project, milestones: initMilestone
 
   async function addMilestone() {
     if (!msTitle.trim() || !msDue) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setAddingMs(true)
     const supabase = createClient()
     const today = new Date().toISOString().split('T')[0]
@@ -90,6 +93,7 @@ export default function ProjectDetailClient({ project, milestones: initMilestone
   }
 
   async function toggleMilestone(ms: Milestone) {
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setTogglingId(ms.id)
     const supabase = createClient()
     const isDone = ms.status === '완료'
@@ -114,6 +118,7 @@ export default function ProjectDetailClient({ project, milestones: initMilestone
 
   async function deleteMilestone(id: number) {
     if (!confirm('마일스톤을 삭제하시겠습니까?')) return
+    if (isSample) { alert('샘플 모드입니다. 실제 저장은 되지 않습니다.'); return }
     setDeletingId(id)
     const supabase = createClient()
     const { error } = await supabase.from('project_milestones').delete().eq('id', id)

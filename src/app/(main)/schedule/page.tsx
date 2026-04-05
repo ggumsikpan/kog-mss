@@ -1,41 +1,49 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/getUser'
 import ScheduleClient from './ScheduleClient'
+import { SAMPLE_SCHEDULES } from '@/lib/sample-data'
 
 export default async function SchedulePage() {
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date()
   const thisMonth = today.getMonth() + 1 // 1~12
   const thisDay   = today.getDate()
 
-  const { data: schedules } = await supabase
-    .from('annual_schedules')
-    .select('*')
-    .eq('is_active', true)
-    .order('target_month', { ascending: true })
-    .order('target_day',   { ascending: true })
+  let enriched: any[]
 
-  // 각 일정에 D-day 계산 추가
-  const enriched = (schedules ?? []).map((s: any) => {
-    // 올해 또는 내년 기준으로 다음 도래일 계산
-    let targetDate = new Date(today.getFullYear(), (s.target_month ?? 1) - 1, s.target_day ?? 1)
-    if (targetDate < today) {
-      // monthly는 다음 달, yearly는 내년
-      if (s.recurrence === 'monthly') {
-        targetDate = new Date(today.getFullYear(), today.getMonth() + 1, s.target_day ?? 1)
-      } else {
-        targetDate = new Date(today.getFullYear() + 1, (s.target_month ?? 1) - 1, s.target_day ?? 1)
+  if (isSample) {
+    enriched = SAMPLE_SCHEDULES
+  } else {
+    const { data: schedules } = await supabase
+      .from('annual_schedules')
+      .select('*')
+      .eq('is_active', true)
+      .order('target_month', { ascending: true })
+      .order('target_day',   { ascending: true })
+
+    // 각 일정에 D-day 계산 추가
+    enriched = (schedules ?? []).map((s: any) => {
+      // 올해 또는 내년 기준으로 다음 도래일 계산
+      let targetDate = new Date(today.getFullYear(), (s.target_month ?? 1) - 1, s.target_day ?? 1)
+      if (targetDate < today) {
+        // monthly는 다음 달, yearly는 내년
+        if (s.recurrence === 'monthly') {
+          targetDate = new Date(today.getFullYear(), today.getMonth() + 1, s.target_day ?? 1)
+        } else {
+          targetDate = new Date(today.getFullYear() + 1, (s.target_month ?? 1) - 1, s.target_day ?? 1)
+        }
       }
-    }
-    const diffMs = targetDate.getTime() - today.getTime()
-    const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-    return { ...s, days_until: daysUntil, next_date: targetDate.toISOString().split('T')[0] }
-  })
+      const diffMs = targetDate.getTime() - today.getTime()
+      const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+      return { ...s, days_until: daysUntil, next_date: targetDate.toISOString().split('T')[0] }
+    })
+  }
 
   // 이달 일정 수
-  const thisMonthCount = (schedules ?? []).filter((s: any) =>
+  const thisMonthCount = enriched.filter((s: any) =>
     s.target_month === thisMonth || s.recurrence === 'monthly'
   ).length
 
@@ -61,6 +69,7 @@ export default async function SchedulePage() {
         currentMonth={thisMonth}
         currentYear={today.getFullYear()}
         role={role}
+        isSample={isSample}
       />
     </div>
   )

@@ -5,6 +5,7 @@ import { formatDate } from '@/lib/utils'
 import { ArrowLeft, Building2, Calendar, RotateCcw, ShieldCheck, AlertTriangle, Clock, FileText } from 'lucide-react'
 import Link from 'next/link'
 import InspectionDetailClient from './InspectionDetailClient'
+import { SAMPLE_INSPECTIONS, SAMPLE_INSPECTION_HISTORIES } from '@/lib/sample-data'
 
 const RESULT_META: Record<string, { color: string; dot: string }> = {
   '합격':      { color: 'text-green-700',  dot: 'bg-green-500' },
@@ -21,22 +22,34 @@ export default async function InspectionDetailPage({
   const supabase = await createClient()
   const currentUser = await getCurrentUser()
   const role = currentUser?.role ?? 'employee'
+  const isSample = currentUser?.is_sample ?? false
   const today = new Date().toISOString().split('T')[0]
 
-  const [{ data: ins }, { data: histories }] = await Promise.all([
-    supabase
-      .from('inspections')
-      .select('*, departments(name)')
-      .eq('id', id)
-      .single(),
-    supabase
-      .from('inspection_histories')
-      .select('*')
-      .eq('inspection_id', id)
-      .order('inspection_date', { ascending: false }),
-  ])
+  let ins: any
+  let histories: any[]
 
-  if (!ins) notFound()
+  if (isSample) {
+    // Show the '만료' item (SAMPLE_INSPECTIONS[1]) as specified
+    ins = SAMPLE_INSPECTIONS[1]
+    histories = SAMPLE_INSPECTION_HISTORIES.filter(h => h.inspection_id === ins.id)
+  } else {
+    const [{ data: insData }, { data: historiesData }] = await Promise.all([
+      supabase
+        .from('inspections')
+        .select('*, departments(name)')
+        .eq('id', id)
+        .single(),
+      supabase
+        .from('inspection_histories')
+        .select('*')
+        .eq('inspection_id', id)
+        .order('inspection_date', { ascending: false }),
+    ])
+
+    if (!insData) notFound()
+    ins = insData
+    histories = historiesData ?? []
+  }
 
   const daysUntil = Math.ceil(
     (new Date(ins.next_due_date).getTime() - new Date(today).getTime()) / 86400000
@@ -164,6 +177,7 @@ export default async function InspectionDetailPage({
             legalCycleMonths={ins.legal_cycle_months}
             today={today}
             role={role}
+            isSample={isSample}
           />
         </div>
       </div>
