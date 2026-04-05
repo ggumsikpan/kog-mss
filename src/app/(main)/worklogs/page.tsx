@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentUser } from '@/lib/auth/getUser'
 import WorklogClient from './WorklogClient'
-import { SAMPLE_WORK_LOGS, SAMPLE_USERS, SAMPLE_DEPARTMENTS } from '@/lib/sample-data'
+import {
+  SAMPLE_WORK_LOGS, SAMPLE_USERS, SAMPLE_DEPARTMENTS, SAMPLE_ATTENDANCE,
+} from '@/lib/sample-data'
 
 export default async function WorklogsPage({
   searchParams,
@@ -19,11 +21,12 @@ export default async function WorklogsPage({
   let logs: any[]
   let users: any[]
   let departments: any[]
+  let attendance: any[]
 
   if (isSample) {
     logs = SAMPLE_WORK_LOGS.map((l: any) => ({
       ...l,
-      title: l.task ?? l.title ?? '',
+      title: l.title ?? '',
       log_type: l.log_type ?? '정기업무',
       description: l.description ?? '',
       is_planned: l.is_planned ?? true,
@@ -31,8 +34,14 @@ export default async function WorklogsPage({
     }))
     users = SAMPLE_USERS
     departments = SAMPLE_DEPARTMENTS
+    attendance = SAMPLE_ATTENDANCE
   } else {
-    const [{ data: logsData }, { data: usersData }, { data: departmentsData }] = await Promise.all([
+    const [
+      { data: logsData },
+      { data: usersData },
+      { data: departmentsData },
+      { data: attendanceData },
+    ] = await Promise.all([
       supabase
         .from('work_logs')
         .select('*, users(name, position, departments(name))')
@@ -47,11 +56,20 @@ export default async function WorklogsPage({
         .from('departments')
         .select('id, name')
         .order('name'),
+      supabase
+        .from('attendance_records')
+        .select('id, user_id, date, type, note')
+        .eq('date', targetDate),
     ])
     logs = logsData ?? []
     users = usersData ?? []
     departments = departmentsData ?? []
+    attendance = attendanceData ?? []
   }
+
+  // 미작성자: 오늘 로그가 없는 직원
+  const submittedUserIds = new Set(logs.map((l: any) => l.user_id))
+  const nonSubmitters = users.filter((u: any) => !submittedUserIds.has(u.id))
 
   const total = logs.length
   const done  = logs.filter((l: any) => l.achieved).length
@@ -61,7 +79,7 @@ export default async function WorklogsPage({
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-black text-gray-900">업무일지</h1>
+          <h1 className="text-xl font-black text-gray-900">업무일지 · 근태</h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {targetDate === today ? '오늘' : targetDate} ·{' '}
             {total > 0
@@ -76,6 +94,8 @@ export default async function WorklogsPage({
         logs={logs}
         users={users}
         departments={departments}
+        attendance={attendance}
+        nonSubmitters={nonSubmitters}
         targetDate={targetDate}
         today={today}
         role={role}

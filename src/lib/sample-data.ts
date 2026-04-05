@@ -63,12 +63,83 @@ export const SAMPLE_PROJECT_MEMBERS = [
 ]
 
 // today = '2026-04-05'
+// today = '2026-04-05' | 김철수 3개, 이영희 2개, 박민준 2개(외근), 최지현 1개, 정수호 0개(연차)
 export const SAMPLE_WORK_LOGS = [
-  { id: 1, user_id: 1, log_date: '2026-04-05', task: '생산라인 일일 점검 및 불량 원인 분석 보고', achieved: true, created_at: '2026-04-05T09:00:00', users: { name: '김철수', position: '부장', departments: { name: '생산부' } } },
-  { id: 2, user_id: 2, log_date: '2026-04-05', task: '4월 품질 검사 결과 리포트 작성 및 배포', achieved: true, created_at: '2026-04-05T09:10:00', users: { name: '이영희', position: '과장', departments: { name: '품질부' } } },
-  { id: 3, user_id: 3, log_date: '2026-04-05', task: 'VSM 개선 프로젝트 2단계 현황 보고자료 준비', achieved: false, created_at: '2026-04-05T09:20:00', users: { name: '박민준', position: '대리', departments: { name: '생산부' } } },
-  { id: 4, user_id: 4, log_date: '2026-04-05', task: '신규 거래처 미팅 일정 조율 및 견적서 발송', achieved: true, created_at: '2026-04-05T09:30:00', users: { name: '최지현', position: '사원', departments: { name: '영업부' } } },
-  { id: 5, user_id: 5, log_date: '2026-04-05', task: '4월 인사발령 검토 및 관련 문서 준비', achieved: false, created_at: '2026-04-05T09:40:00', users: { name: '정수호', position: '차장', departments: { name: '관리부' } } },
+  // 김철수 부장 – 3건
+  {
+    id: 1, user_id: 1, log_date: '2026-04-05', log_type: '정기업무',
+    title: '생산라인 일일 점검 및 불량 원인 분석',
+    description: '1~3호 라인 점검 완료, 미세불량 2건 발견 및 즉시 시정 조치',
+    achieved: true, is_planned: true, note: '',
+    created_at: '2026-04-05T09:00:00',
+    users: { name: '김철수', position: '부장', departments: { name: '생산부' } },
+  },
+  {
+    id: 2, user_id: 1, log_date: '2026-04-05', log_type: '프로젝트',
+    title: 'VSM 개선 프로젝트 4월 진도 보고서 작성',
+    description: '2단계 개선안 현황 정리 및 팀장보고 완료, 3단계 일정 확정',
+    achieved: true, is_planned: true, note: '',
+    created_at: '2026-04-05T10:30:00',
+    users: { name: '김철수', position: '부장', departments: { name: '생산부' } },
+  },
+  {
+    id: 3, user_id: 1, log_date: '2026-04-05', log_type: '돌발업무',
+    title: '설비 2호기 긴급 정지 대응',
+    description: '오후 2시 이상 신호 발생, 긴급 정비팀 호출 및 현장 지휘',
+    achieved: false, is_planned: false, note: '정비팀 점검 중, 내일 오전 재가동 예정',
+    created_at: '2026-04-05T14:00:00',
+    users: { name: '김철수', position: '부장', departments: { name: '생산부' } },
+  },
+  // 이영희 과장 – 2건
+  {
+    id: 4, user_id: 2, log_date: '2026-04-05', log_type: '정기업무',
+    title: '4월 품질검사 결과 리포트 작성 및 전사 배포',
+    description: '월간 불량률 1.8% (전월 대비 −0.5p), 부서별 리포트 공유 완료',
+    achieved: true, is_planned: true, note: '',
+    created_at: '2026-04-05T09:10:00',
+    users: { name: '이영희', position: '과장', departments: { name: '품질부' } },
+  },
+  {
+    id: 5, user_id: 2, log_date: '2026-04-05', log_type: '프로젝트',
+    title: '불량률 개선 TFT 원인분석 자료 준비',
+    description: '5대 주요 불량 유형별 원인분석 중, 설계팀 도면 자료 요청 완료',
+    achieved: false, is_planned: true, note: '설계팀 자료 수신 후 마무리 예정',
+    created_at: '2026-04-05T11:00:00',
+    users: { name: '이영희', position: '과장', departments: { name: '품질부' } },
+  },
+  // 박민준 대리 – 2건 (외근: 협력사 방문)
+  {
+    id: 6, user_id: 3, log_date: '2026-04-05', log_type: '정기업무',
+    title: '협력사(한국부품) 생산현장 방문 및 공정품질 확인',
+    description: '납품 부품 외관·치수 검사 동행, 불량 재발 방지 대책 협의',
+    achieved: true, is_planned: true, note: '',
+    created_at: '2026-04-05T09:20:00',
+    users: { name: '박민준', position: '대리', departments: { name: '생산부' } },
+  },
+  {
+    id: 7, user_id: 3, log_date: '2026-04-05', log_type: '프로젝트',
+    title: 'VSM 파일럿 라인 적용 현황 점검',
+    description: '오후 복귀 후 파일럿 라인 3개소 현황 검토, 문제점 2건 기록',
+    achieved: true, is_planned: true, note: '',
+    created_at: '2026-04-05T16:00:00',
+    users: { name: '박민준', position: '대리', departments: { name: '생산부' } },
+  },
+  // 최지현 사원 – 1건
+  {
+    id: 8, user_id: 4, log_date: '2026-04-05', log_type: '정기업무',
+    title: '신규 거래처 미팅 일정 조율 및 견적서 발송',
+    description: '(주)대한자동차 담당자와 납품 조건 협의, 견적서 발송 완료',
+    achieved: true, is_planned: true, note: '',
+    created_at: '2026-04-05T09:30:00',
+    users: { name: '최지현', position: '사원', departments: { name: '영업부' } },
+  },
+  // 정수호 차장 – 0건 (연차)
+]
+
+// 근태 기록 (2026-04-05 기준)
+export const SAMPLE_ATTENDANCE = [
+  { id: 1, user_id: 3, date: '2026-04-05', type: '외근', note: '협력사 방문 — (주)한국부품' },
+  { id: 2, user_id: 5, date: '2026-04-05', type: '연차', note: '' },
 ]
 
 // days_until relative to 2026-04-05
