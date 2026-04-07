@@ -131,6 +131,7 @@ export default async function WorklogsPage({
         targetDate={targetDate}
         today={today}
         role={role}
+        currentUserId={currentUser?.id ?? 0}
         isSample={isSample}
         isRestDay={isRest}
         restLabel={restLabel}

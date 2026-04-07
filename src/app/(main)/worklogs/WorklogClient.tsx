@@ -40,6 +40,7 @@ interface Props {
   targetDate: string
   today: string
   role: 'admin' | 'manager' | 'employee'
+  currentUserId: number
   isSample?: boolean
   isRestDay?: boolean
   restLabel?: string
@@ -86,7 +87,7 @@ function fmtDate(dateStr: string) {
 export default function WorklogClient({
   logs: initLogs, users, departments, attendance: initAttendance,
   nonSubmitters: initNonSubmitters,
-  targetDate, today, role, isSample,
+  targetDate, today, role, currentUserId, isSample,
   isRestDay = false, restLabel = '', specialWorkday: initSpecialWorkday = null,
 }: Props) {
   const router = useRouter()
@@ -207,7 +208,7 @@ export default function WorklogClient({
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     title: '', log_type: '정기업무' as LogType,
-    description: '', is_planned: true, user_id: users[0]?.id ?? 1,
+    description: '', is_planned: true, user_id: currentUserId,
   })
   const [adding, setAdding] = useState(false)
 
@@ -677,12 +678,6 @@ export default function WorklogClient({
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white resize-none"
           />
           <div className="flex items-center gap-3 flex-wrap">
-            <select value={form.user_id} onChange={e => setForm(f => ({ ...f, user_id: Number(e.target.value) }))}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none bg-white">
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name} ({(u.departments as any)?.name})</option>
-              ))}
-            </select>
             <button onClick={addLog} disabled={adding || !form.title.trim()}
               className="ml-auto flex items-center gap-1.5 bg-blue-600 text-white text-sm font-semibold px-5 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
               {adding ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
