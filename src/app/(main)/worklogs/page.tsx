@@ -122,6 +122,12 @@ export default async function WorklogsPage({
             }
           </p>
         </div>
+        <a
+          href={`/worklogs/report?type=daily&date=${targetDate}`}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1A2744] border border-gray-200 rounded-lg px-3 py-2 transition-colors hover:border-[#1A2744]"
+        >
+          📊 보고서
+        </a>
       </div>
 
       <WorklogClient

@@ -415,14 +415,6 @@ export default function WorklogClient({
           className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-500">
           <ChevronRight size={18} />
         </button>
-        {/* 보고서 버튼 */}
-        <a
-          href={`/worklogs/report?type=daily&date=${targetDate}`}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1A2744] border border-gray-200 rounded-lg px-2.5 py-1.5 transition-colors hover:border-[#1A2744]"
-        >
-          <FileBarChart2 size={13} />
-          보고서
-        </a>
       </div>
 
       {/* ── 8:30 마감 배너 (오늘 + 미작성자 있을 때) ─── */}
