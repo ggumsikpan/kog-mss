@@ -2,17 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, ClipboardList, GraduationCap, CalendarDays,
   Users, FileText, ShieldCheck, Building2, LogOut, Settings,
 } from 'lucide-react'
-
-const ROLE_LABEL: Record<string, string> = {
-  admin:    '관리자',
-  manager:  '매니저',
-  employee: '직원',
-}
 
 const navItems = [
   { href: '/dashboard',    label: '대시보드',     icon: LayoutDashboard },
@@ -28,12 +21,12 @@ const navItems = [
 export default function Sidebar({
   userName,
   userRole,
-  deptName,
+  userPosition,
   isSample = false,
 }: {
   userName: string
   userRole: string
-  deptName: string
+  userPosition: string
   isSample?: boolean
 }) {
   const pathname = usePathname()
@@ -42,12 +35,9 @@ export default function Sidebar({
   async function handleLogout() {
     if (isSample) {
       document.cookie = 'kog_demo=; path=/; max-age=0'
-      router.push('/login')
-      router.refresh()
-      return
+    } else {
+      document.cookie = 'kog_user_id=; path=/; max-age=0'
     }
-    const supabase = createClient()
-    await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
@@ -95,12 +85,11 @@ export default function Sidebar({
           <span className="text-white text-sm font-semibold">{userName || '사용자'}</span>
           {isSample
             ? <span className="text-xs bg-amber-400 text-amber-900 font-bold px-1.5 py-0.5 rounded">SAMPLE</span>
-            : <span className="text-xs bg-white/10 text-white/60 px-1.5 py-0.5 rounded">{ROLE_LABEL[userRole] ?? userRole}</span>
+            : <span className="text-xs bg-white/10 text-white/60 px-1.5 py-0.5 rounded">{userPosition}</span>
           }
         </div>
-        <p className="text-white/40 text-xs">{deptName}</p>
         <button onClick={handleLogout}
-          className="mt-3 flex items-center gap-1.5 text-white/40 text-xs hover:text-white/70 transition-colors">
+          className="mt-2 flex items-center gap-1.5 text-white/40 text-xs hover:text-white/70 transition-colors">
           <LogOut size={12} />
           로그아웃
         </button>

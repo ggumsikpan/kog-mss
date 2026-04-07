@@ -9,12 +9,8 @@ export default async function MainLayout({ children }: { children: React.ReactNo
     <div className="flex min-h-screen">
       <Sidebar
         userName={currentUser?.name ?? ''}
-        userRole={currentUser?.role ?? 'employee'}
-        deptName={
-          Array.isArray(currentUser?.departments)
-            ? currentUser.departments[0]?.name
-            : currentUser?.departments?.name ?? ''
-        }
+        userRole={currentUser?.role ?? 'staff'}
+        userPosition={currentUser?.position ?? ''}
         isSample={isSample}
       />
       <main className="flex-1 overflow-auto flex flex-col">

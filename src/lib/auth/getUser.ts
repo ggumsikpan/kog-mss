@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 
 export type UserRole = 'admin' | 'manager' | 'employee'
 
@@ -8,10 +8,9 @@ export interface CurrentUser {
   name: string
   position: string
   role: UserRole
-  department_id: number
+  phone: string
+  email: string
   is_sample: boolean
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  departments?: any
 }
 
 const SAMPLE_USER: CurrentUser = {
@@ -19,27 +18,39 @@ const SAMPLE_USER: CurrentUser = {
   name: '데모 사용자',
   position: '관리자',
   role: 'admin',
-  department_id: 4,
+  phone: '',
+  email: '',
   is_sample: true,
-  departments: { name: '관리부' },
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies()
+
+  // 샘플 모드
   if (cookieStore.get('kog_demo')?.value === '1') {
     return SAMPLE_USER
   }
 
-  const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) return null
+  // 실제 로그인
+  const userId = cookieStore.get('kog_user_id')?.value
+  if (!userId) return null
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   const { data } = await supabase
     .from('users')
-    .select('id, name, position, role, department_id, is_sample, departments(name)')
-    .eq('auth_id', authUser.id)
+    .select('id, name, position, role, phone, email')
+    .eq('id', parseInt(userId))
     .eq('is_active', true)
     .single()
 
-  return data ?? null
+  if (!data) return null
+
+  return {
+    ...data,
+    is_sample: false,
+  }
 }
