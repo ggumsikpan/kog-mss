@@ -77,9 +77,8 @@ export default async function ReportPage({
         .order('log_date', { ascending: true })
         .order('created_at', { ascending: true }),
       supabase.from('users')
-        .select('id, name, position, department_id, departments(name)')
+        .select('id, name, position, department_id')
         .eq('is_active', true)
-        .order('department_id')
         .order('name'),
     ])
     logs  = logsData  ?? []
@@ -111,7 +110,7 @@ export default async function ReportPage({
 
   // 부서별 통계
   const deptStats = logs.reduce<Record<string, { name: string; total: number; done: number }>>((acc, l) => {
-    const dName = l.users?.departments?.name ?? '미분류'
+    const dName = l.users?.position ?? '미분류'
     if (!acc[dName]) acc[dName] = { name: dName, total: 0, done: 0 }
     acc[dName].total++
     if (l.achieved) acc[dName].done++
@@ -282,7 +281,7 @@ export default async function ReportPage({
                   <div key={u.id} className="flex items-center gap-1.5 text-sm">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
                     <span className="font-semibold text-gray-800">{u.name}</span>
-                    <span className="text-gray-500">{u.position} · {(u.departments as any)?.name}</span>
+                    <span className="text-gray-500">{u.position}</span>
                   </div>
                 ))}
               </div>
@@ -330,7 +329,7 @@ function PersonGroupList({
             <div className="bg-gray-50 px-4 py-2.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-gray-800">{user?.name}</span>
-                <span className="text-xs text-gray-500">{user?.position} · {user?.departments?.name}</span>
+                <span className="text-xs text-gray-500">{user?.position}</span>
               </div>
               <span className={`text-xs font-bold ${done === uLogs.length ? 'text-green-600' : done > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {done}/{uLogs.length}건 달성
