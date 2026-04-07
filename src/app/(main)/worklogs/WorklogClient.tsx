@@ -474,7 +474,7 @@ export default function WorklogClient({
                   {/* 직원 정보 */}
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-semibold text-gray-800">{user.name}</span>
-                    <span className="text-xs text-gray-400 ml-1.5">{user.position} · {(user.departments as any)?.name}</span>
+                    <span className="text-xs text-gray-400 ml-1.5">{user.position}</span>
                   </div>
 
                   {/* 근태 뱃지 / 편집 버튼 */}
@@ -560,7 +560,7 @@ export default function WorklogClient({
               <div key={u.id} className="flex items-center gap-2 text-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0 mt-0.5" />
                 <span className="font-semibold text-gray-800">{u.name}</span>
-                <span className="text-gray-500">{u.position} · {(u.departments as any)?.name}</span>
+                <span className="text-gray-500">{u.position}</span>
                 {u.attend && (
                   <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${ATTENDANCE_META[u.attend.type].color}`}>
                     {ATTENDANCE_META[u.attend.type].label}
@@ -573,7 +573,7 @@ export default function WorklogClient({
               <div key={u.id} className="flex items-center gap-2 text-sm opacity-70">
                 <span className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0 mt-0.5" />
                 <span className="font-semibold text-gray-600">{u.name}</span>
-                <span className="text-gray-400">{u.position} · {(u.departments as any)?.name}</span>
+                <span className="text-gray-400">{u.position}</span>
                 {u.attend && (
                   <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${ATTENDANCE_META[u.attend.type].color}`}>
                     {ATTENDANCE_META[u.attend.type].label}
@@ -635,7 +635,7 @@ export default function WorklogClient({
           className="text-xs border border-gray-200 rounded-full px-3 py-1.5 focus:outline-none bg-white text-gray-600">
           <option value="all">전체 담당자</option>
           {users.map(u => (
-            <option key={u.id} value={u.id}>{u.name} ({(u.departments as any)?.name})</option>
+            <option key={u.id} value={u.id}>{u.name}</option>
           ))}
         </select>
         {!isPast && (
@@ -734,7 +734,7 @@ export default function WorklogClient({
                         {log.log_type === '돌발업무' && (
                           <span className="text-xs text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">돌발</span>
                         )}
-                        <span className="text-xs text-gray-400">{log.users?.name} · {log.users?.departments?.name}</span>
+                        <span className="text-xs text-gray-400">{log.users?.name}</span>
                         {/* 근태 뱃지 */}
                         {userAttend && (
                           <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${ATTENDANCE_META[userAttend.type].color}`}>
