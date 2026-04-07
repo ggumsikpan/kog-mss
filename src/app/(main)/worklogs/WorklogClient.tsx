@@ -221,7 +221,7 @@ export default function WorklogClient({
     const { data, error } = await supabase
       .from('work_logs')
       .insert([{ ...form, log_date: targetDate, achieved: false }])
-      .select('*, users(name, position, departments(name))')
+      .select('*, users(name, position)')
       .single()
     setAdding(false)
     if (error) { alert('추가 실패: ' + error.message); return }

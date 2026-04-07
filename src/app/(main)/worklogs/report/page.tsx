@@ -71,7 +71,7 @@ export default async function ReportPage({
     const supabase = await createClient()
     const [{ data: logsData }, { data: usersData }] = await Promise.all([
       supabase.from('work_logs')
-        .select('*, users(id, name, position, department_id, departments(name))')
+        .select('*, users(id, name, position, department_id)')
         .gte('log_date', start)
         .lte('log_date', end)
         .order('log_date', { ascending: true })

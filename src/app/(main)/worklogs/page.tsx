@@ -66,7 +66,7 @@ export default async function WorklogsPage({
       ] = await Promise.all([
         supabase
           .from('work_logs')
-          .select('*, users(name, position, departments(name))')
+          .select('*, users(name, position)')
           .eq('log_date', targetDate)
           .order('created_at', { ascending: true }),
         supabase
