@@ -73,6 +73,7 @@ export default async function WorklogsPage({
           .from('users')
           .select('id, name, position, department_id, departments(name)')
           .eq('is_active', true)
+          .neq('role', 'admin')
           .order('name'),
         supabase
           .from('departments')
@@ -93,6 +94,7 @@ export default async function WorklogsPage({
         .from('users')
         .select('id, name, position, department_id, departments(name)')
         .eq('is_active', true)
+        .neq('role', 'admin')
         .order('name')
       users = usersData ?? []
     }
