@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 
 export type UserRole = 'admin' | 'manager' | 'employee'
 
@@ -28,31 +28,42 @@ const SAMPLE_USER: CurrentUser = {
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies()
 
-  // 샘플 모드
+  // 1. 샘플 모드 우선
   if (cookieStore.get('kog_demo')?.value === '1') {
     return SAMPLE_USER
   }
 
-  // 실제 로그인
-  const userId = cookieStore.get('kog_user_id')?.value
-  if (!userId) return null
+  // 2. Supabase Auth 세션 확인
+  const supabase = await createClient()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const { data } = await supabase
+  // 3. public.users 조회: 먼저 auth_user_id, 없으면 email
+  let { data } = await supabase
     .from('users')
-    .select('id, name, position, role, phone, email, department_id')
-    .eq('id', parseInt(userId))
-    .eq('is_active', true)
-    .single()
+    .select('id, name, position, role, phone, email, department_id, is_active')
+    .eq('auth_user_id', authUser.id)
+    .maybeSingle()
 
-  if (!data) return null
+  if (!data && authUser.email) {
+    const byEmail = await supabase
+      .from('users')
+      .select('id, name, position, role, phone, email, department_id, is_active')
+      .eq('email', authUser.email)
+      .maybeSingle()
+    data = byEmail.data
+  }
+
+  if (!data || !data.is_active) return null
 
   return {
-    ...data,
+    id: data.id,
+    name: data.name,
+    position: data.position ?? '',
+    role: data.role as UserRole,
+    phone: data.phone ?? '',
+    email: data.email ?? '',
+    department_id: data.department_id ?? null,
     is_sample: false,
   }
 }

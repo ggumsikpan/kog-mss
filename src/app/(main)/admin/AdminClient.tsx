@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Plus, X, Loader2, UserCheck, UserX, Shield, ChevronDown, KeyRound
+  Plus, X, Loader2, UserCheck, UserX, Shield, ChevronDown
 } from 'lucide-react'
 
 const ROLES = ['employee', 'manager', 'admin'] as const
@@ -29,7 +29,7 @@ export default function AdminClient({
   const [showForm, setShowForm] = useState(false)
   const [saving,   setSaving]   = useState(false)
   const [form, setForm] = useState({
-    name: '', phone: '', email: '', password: '0000', position: '',
+    name: '', phone: '', email: '', position: '',
     role: 'employee' as typeof ROLES[number],
     department_id: '',
     joined_at: new Date().toISOString().split('T')[0],
@@ -38,18 +38,13 @@ export default function AdminClient({
   // 역할 변경 드롭다운
   const [editingRole, setEditingRole] = useState<number | null>(null)
 
-  // 비밀번호 재설정
-  const [resetId,  setResetId]  = useState<number | null>(null)
-  const [newPw,    setNewPw]    = useState('')
-  const [resetting, setResetting] = useState(false)
-
   function f(key: string, val: string) {
     setForm(prev => ({ ...prev, [key]: val }))
   }
 
   async function createUser() {
-    if (!form.name || !form.password) {
-      alert('이름과 비밀번호는 필수입니다.')
+    if (!form.name || !form.email) {
+      alert('이름과 Google 이메일은 필수입니다.')
       return
     }
     setSaving(true)
@@ -64,7 +59,7 @@ export default function AdminClient({
     setUsers(prev => [...prev, json.user])
     setSaving(false)
     setShowForm(false)
-    setForm({ name: '', phone: '', email: '', password: '0000', position: '', role: 'employee', department_id: '', joined_at: new Date().toISOString().split('T')[0] })
+    setForm({ name: '', phone: '', email: '', position: '', role: 'employee', department_id: '', joined_at: new Date().toISOString().split('T')[0] })
     startTransition(() => router.refresh())
   }
 
@@ -88,21 +83,6 @@ export default function AdminClient({
     })
     if (!res.ok) { alert('변경 실패'); return }
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: !current } : u))
-  }
-
-  async function resetPassword(userId: number) {
-    if (!newPw || newPw.length < 4) { alert('비밀번호는 최소 4자 이상입니다.'); return }
-    setResetting(true)
-    const res = await fetch(`/api/admin/users/${userId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: newPw }),
-    })
-    setResetting(false)
-    if (!res.ok) { alert('비밀번호 재설정 실패'); return }
-    setResetId(null)
-    setNewPw('')
-    alert('비밀번호가 변경되었습니다.')
   }
 
   const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
@@ -169,26 +149,7 @@ export default function AdminClient({
                     {u.is_active ? '활성' : '비활성'}
                   </button>
                 </td>
-                <td className="px-4 py-3.5">
-                  {resetId === u.id ? (
-                    <div className="flex items-center gap-1">
-                      <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
-                        placeholder="새 비밀번호 (4자+)" autoFocus
-                        className="text-xs border border-gray-200 rounded px-2 py-1 w-28 focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      />
-                      <button onClick={() => resetPassword(u.id)} disabled={resetting}
-                        className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 disabled:opacity-50">
-                        {resetting ? '...' : '변경'}
-                      </button>
-                      <button onClick={() => { setResetId(null); setNewPw('') }} className="text-gray-400"><X size={12} /></button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setResetId(u.id)}
-                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-blue-600 transition-colors">
-                      <KeyRound size={12} /> 비밀번호
-                    </button>
-                  )}
-                </td>
+                <td className="px-4 py-3.5"></td>
               </tr>
             ))}
           </tbody>
@@ -223,12 +184,10 @@ export default function AdminClient({
                 <input value={form.phone} onChange={e => f('phone', e.target.value)} placeholder="010-0000-0000" className={inputCls} />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">이메일</label>
-                <input type="email" value={form.email} onChange={e => f('email', e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-600 mb-1 block">초기 비밀번호 * (4자 이상)</label>
-                <input type="password" value={form.password} onChange={e => f('password', e.target.value)} className={inputCls} />
+                <label className="text-xs font-semibold text-gray-600 mb-1 block">Google 이메일 *</label>
+                <input type="email" value={form.email} onChange={e => f('email', e.target.value)}
+                  placeholder="name@gmail.com" className={inputCls} />
+                <p className="text-[11px] text-gray-400 mt-1">이 이메일로 Google 로그인 시 자동 매칭됩니다.</p>
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 mb-1 block">소속 부서</label>

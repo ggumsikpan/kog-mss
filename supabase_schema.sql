@@ -16,7 +16,8 @@ CREATE TABLE users (
   id            SERIAL PRIMARY KEY,
   name          VARCHAR(50) NOT NULL,
   email         VARCHAR(100) NOT NULL UNIQUE,
-  password_hash TEXT,
+  password_hash TEXT,                       -- Deprecated (Google OAuth 전환 후 미사용, 롤백 대비 유지)
+  auth_user_id  UUID UNIQUE,                -- Supabase Auth (auth.users.id) 연결용
   department_id INT REFERENCES departments(id),
   position      VARCHAR(50),
   role          VARCHAR(20) DEFAULT 'staff', -- 'admin' | 'manager' | 'staff'

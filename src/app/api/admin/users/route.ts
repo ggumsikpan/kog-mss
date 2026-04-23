@@ -1,36 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import bcrypt from 'bcryptjs'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser } from '@/lib/auth/getUser'
 
 async function assertAdmin() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get('kog_user_id')?.value
-  if (!userId) return false
-  const { data } = await supabase.from('users').select('role').eq('id', parseInt(userId)).single()
-  return data?.role === 'admin'
+  const user = await getCurrentUser()
+  return user?.role === 'admin' && !user.is_sample
 }
 
-// 사용자 생성
+// 사용자 생성 (Google OAuth 전환 후: 비밀번호 없이 이메일 선등록)
 export async function POST(request: NextRequest) {
-  if (!await assertAdmin()) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!await assertAdmin()) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const body = await request.json()
-  const plainPassword = body.password || '0000'
-  const hashedPassword = await bcrypt.hash(plainPassword, 10)
 
+  if (!body.name || !body.email) {
+    return NextResponse.json({ error: '이름과 이메일은 필수입니다.' }, { status: 400 })
+  }
+
+  const supabase = await createClient()
   const { data, error } = await supabase.from('users').insert([{
     name:          body.name,
     phone:         body.phone || null,
-    email:         body.email || null,
-    password_hash: hashedPassword,
+    email:         body.email,
+    password_hash: null, // Google OAuth 사용 — 비밀번호 없음
     position:      body.position || null,
-    role:          body.role || 'employee',
+    role:          body.role || 'staff',
     department_id: body.department_id ? parseInt(body.department_id) : null,
     is_active:     true,
     joined_at:     body.joined_at || null,

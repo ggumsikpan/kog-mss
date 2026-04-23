@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, ClipboardList, FileText, GraduationCap, CalendarDays,
   Users, Building2, ShieldCheck, LogOut, Settings, Bell, Network,
@@ -105,7 +106,12 @@ export default function Sidebar({
   }
 
   async function handleLogout() {
-    document.cookie = isSample ? 'kog_demo=; path=/; max-age=0' : 'kog_user_id=; path=/; max-age=0'
+    if (isSample) {
+      document.cookie = 'kog_demo=; path=/; max-age=0'
+    } else {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    }
     router.push('/login')
     router.refresh()
   }
