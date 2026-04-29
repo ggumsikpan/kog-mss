@@ -25,8 +25,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Supabase 인증 쿠키 존재 확인 (네트워크 호출 없음)
+  // Supabase가 큰 토큰을 분할 저장할 때 sb-xxx-auth-token.0/.1 형태로도 저장하므로 includes 사용
   const hasSupabaseAuth = request.cookies.getAll().some(
-    (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'),
+    (c) => c.name.startsWith('sb-') && c.name.includes('auth-token'),
   )
 
   if (!hasSupabaseAuth) {
