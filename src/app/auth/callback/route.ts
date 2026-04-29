@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * Google OAuth 콜백 처리
+ * Google OAuth 콜백 처리 (화이트리스트 모드)
  *
  * 흐름:
  * 1. Supabase가 code 파라미터와 함께 이 경로로 리다이렉트
  * 2. code를 세션으로 교환 (auth.users에 row 생성/갱신)
  * 3. public.users에서 email 매칭
- *    - 있으면: auth_user_id 연결
- *    - 없으면: staff 역할로 신규 생성
- * 4. /dashboard로 리다이렉트
+ *    - 있고 활성: auth_user_id 연결 후 dashboard 이동
+ *    - 있고 비활성: 로그아웃 + 에러
+ *    - 없음: 로그아웃 + 등록 안 됨 에러 (자동 생성 안 함)
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -35,52 +35,41 @@ export async function GET(request: NextRequest) {
   const authUser = sessionData.user
   const email = authUser.email
   const authUserId = authUser.id
-  const googleFullName =
-    (authUser.user_metadata?.full_name as string | undefined) ??
-    (authUser.user_metadata?.name as string | undefined) ??
-    email?.split('@')[0] ??
-    '신규 사용자'
 
   if (!email) {
+    await supabase.auth.signOut()
     return NextResponse.redirect(`${origin}/login?error=no_email`)
   }
 
-  // 2. public.users에서 email 매칭
+  // 2. public.users에서 email 매칭 (화이트리스트)
   const { data: existingUser } = await supabase
     .from('users')
     .select('id, auth_user_id, is_active')
     .eq('email', email)
     .maybeSingle()
 
-  if (existingUser) {
-    // 기존 사용자: auth_user_id 비어있으면 연결
-    if (!existingUser.auth_user_id) {
-      await supabase
-        .from('users')
-        .update({ auth_user_id: authUserId })
-        .eq('id', existingUser.id)
-    }
+  // ✗ 등록되지 않은 이메일 → 로그아웃 + 차단
+  if (!existingUser) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(
+      `${origin}/login?error=not_registered&email=${encodeURIComponent(email)}`
+    )
+  }
 
-    // 비활성 계정 차단
-    if (!existingUser.is_active) {
-      await supabase.auth.signOut()
-      return NextResponse.redirect(`${origin}/login?error=inactive`)
-    }
-  } else {
-    // 신규 사용자: staff 역할로 자동 생성
-    const { error: insertError } = await supabase.from('users').insert({
-      name: googleFullName,
-      email,
-      auth_user_id: authUserId,
-      role: 'staff',
-      is_active: true,
-      joined_at: new Date().toISOString().split('T')[0],
-    })
+  // ✗ 비활성화된 계정 → 로그아웃 + 차단
+  if (!existingUser.is_active) {
+    await supabase.auth.signOut()
+    return NextResponse.redirect(
+      `${origin}/login?error=inactive&email=${encodeURIComponent(email)}`
+    )
+  }
 
-    if (insertError) {
-      console.error('[auth/callback] User creation failed:', insertError)
-      // 이메일 중복 등 예외 시에도 로그인 세션은 유지 — 후속 대응은 admin이
-    }
+  // ✓ 활성 사용자: auth_user_id 연결 (아직 없으면)
+  if (!existingUser.auth_user_id) {
+    await supabase
+      .from('users')
+      .update({ auth_user_id: authUserId })
+      .eq('id', existingUser.id)
   }
 
   return NextResponse.redirect(`${origin}${next}`)

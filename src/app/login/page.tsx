@@ -1,11 +1,43 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Loader2, Building2, FlaskConical } from 'lucide-react'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Loader2, Building2, FlaskConical, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+const ERROR_MESSAGES: Record<string, (email?: string) => string> = {
+  not_registered: (email) =>
+    email
+      ? `${email}은(는) 등록되지 않은 계정입니다. 관리자에게 가입을 요청해주세요.`
+      : '등록되지 않은 계정입니다. 관리자에게 가입을 요청해주세요.',
+  inactive: (email) =>
+    email
+      ? `${email} 계정이 비활성화되어 있습니다. 관리자에게 문의해주세요.`
+      : '비활성화된 계정입니다. 관리자에게 문의해주세요.',
+  no_email: () => 'Google 계정에서 이메일 정보를 받지 못했습니다.',
+  session_exchange: () => 'Google 인증 처리에 실패했습니다. 다시 시도해주세요.',
+  missing_code: () => '인증 코드가 누락되었습니다. 다시 시도해주세요.',
+}
+
+function ErrorBanner() {
+  const params = useSearchParams()
+  const errorKey = params.get('error')
+  const email = params.get('email') ?? undefined
+
+  if (!errorKey) return null
+
+  const builder = ERROR_MESSAGES[errorKey]
+  const message = builder ? builder(email) : '로그인에 실패했습니다. 다시 시도해주세요.'
+
+  return (
+    <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-3">
+      <AlertCircle size={14} className="text-red-500 flex-shrink-0 mt-0.5" />
+      <p className="text-xs text-red-700 leading-relaxed">{message}</p>
+    </div>
+  )
+}
+
+function LoginContent() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -24,7 +56,6 @@ export default function LoginPage() {
       setError(error.message || 'Google 로그인에 실패했습니다.')
       setLoading(false)
     }
-    // 성공 시 브라우저가 Google 페이지로 자동 리다이렉트되므로 추가 처리 불필요
   }
 
   async function handleSampleLogin() {
@@ -47,8 +78,12 @@ export default function LoginPage() {
         </div>
 
         {/* 로그인 카드 */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-4">
-          <p className="text-center text-sm text-gray-600 mb-2">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <Suspense fallback={null}>
+            <ErrorBanner />
+          </Suspense>
+
+          <p className="text-center text-sm text-gray-600 mb-4">
             Google 계정으로 로그인하세요
           </p>
 
@@ -72,12 +107,15 @@ export default function LoginPage() {
           </button>
 
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 mt-3">{error}</p>
           )}
 
-          <p className="text-center text-xs text-gray-400 mt-3">
-            회사에서 사용하는 Google 계정으로 로그인해주세요
-          </p>
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-[11px] text-gray-400 leading-relaxed text-center">
+              회사 등록된 Google 계정으로만 로그인 가능합니다.<br/>
+              계정이 없으시면 관리자에게 등록을 요청해주세요.
+            </p>
+          </div>
         </div>
 
         {/* 샘플 체험 버튼 */}
@@ -101,5 +139,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <LoginContent />
+    </Suspense>
   )
 }
