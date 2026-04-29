@@ -54,8 +54,11 @@ export default async function EmployeesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.map((user: any) => {
-                const joinedDate = new Date(user.joined_at)
-                const years = Math.floor((Date.now() - joinedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                const hasJoinedDate = !!user.joined_at
+                const joinedDate = hasJoinedDate ? new Date(user.joined_at) : null
+                const years = joinedDate
+                  ? Math.floor((Date.now() - joinedDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+                  : null
                 const deptName = user.departments?.name || deptMap[user.department_id] || '-'
                 return (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
@@ -77,8 +80,10 @@ export default async function EmployeesPage() {
                         {deptName}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{formatDate(user.joined_at)}</td>
-                    <td className="px-4 py-3 text-gray-500">{years > 0 ? `${years}년` : '1년 미만'}</td>
+                    <td className="px-4 py-3 text-gray-500">{hasJoinedDate ? formatDate(user.joined_at) : '-'}</td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {years === null ? '-' : years > 0 ? `${years}년` : '1년 미만'}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${
                         user.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
