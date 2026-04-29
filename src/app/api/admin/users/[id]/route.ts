@@ -24,6 +24,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (body.department_id !== undefined) {
     updates.department_id = body.department_id ? parseInt(body.department_id) : null
   }
+  if (body.joined_at     !== undefined) updates.joined_at = body.joined_at || null
 
   const supabase = await createClient()
   const { data, error } = await supabase.from('users').update(updates).eq('id', id).select().single()
