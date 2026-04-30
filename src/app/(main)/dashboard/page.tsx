@@ -232,15 +232,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI 카드 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <KpiCard label="🔴 지연 프로젝트" value={delayed.length} sub="즉시 조치 필요" color="red" />
-        <KpiCard label="🟡 이달 검사 임박" value={inspections.length} sub="D-30 이내" color="yellow" />
-        <KpiCard label="📚 이달 교육 예정" value={educations.length} sub={`${today.slice(0,7)} 기준`} color="blue" />
-        <KpiCard label="📄 미처리 공문서" value={docs.length} sub="접수·처리중" color={docs.length > 0 ? 'yellow' : 'green'} />
-      </div>
-
-      {/* 오늘 업무일지 + 이달 근태 달력 */}
+      {/* 오늘 업무일지 + 이달 근태 달력 (최상단) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
 
         {/* 오늘 업무일지 */}
@@ -363,6 +355,14 @@ export default async function DashboardPage() {
             <p className="text-[10px] text-gray-400 mt-2">이달 근태 총 {monthAttendance.length}건</p>
           </div>
         </SectionCard>
+      </div>
+
+      {/* KPI 카드 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KpiCard label="🔴 지연 프로젝트" value={delayed.length} sub="즉시 조치 필요" color="red" />
+        <KpiCard label="🟡 이달 검사 임박" value={inspections.length} sub="D-30 이내" color="yellow" />
+        <KpiCard label="📚 이달 교육 예정" value={educations.length} sub={`${today.slice(0,7)} 기준`} color="blue" />
+        <KpiCard label="📄 미처리 공문서" value={docs.length} sub="접수·처리중" color={docs.length > 0 ? 'yellow' : 'green'} />
       </div>
 
       {/* 메인 2컬럼 */}

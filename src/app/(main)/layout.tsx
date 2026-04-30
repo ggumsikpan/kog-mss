@@ -27,10 +27,8 @@ export default async function MainLayout({ children }: { children: React.ReactNo
         <div className="flex-1">
           {children}
         </div>
-        <footer className="print:hidden px-4 lg:px-6 py-3 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-400 flex-wrap">
-          <span>© 2026 (주)코그인터내셔널 · All rights reserved.</span>
-          <span className="text-gray-300">|</span>
-          <span>시스템 개발 · <a href="https://ggumsikman.vercel.app/" target="_blank" className="font-bold text-pink-500 no-underline hover:underline">꿈식판 꿈식맨</a></span>
+        <footer className="print:hidden px-4 lg:px-6 py-3 border-t border-gray-100 text-center text-xs text-gray-400">
+          © 2026 (주)코그인터내셔널 · All rights reserved.
         </footer>
       </main>
     </div>
