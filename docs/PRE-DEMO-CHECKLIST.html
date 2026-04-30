@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>설명회 직전 최종 체크리스트</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f9fafb;
+    color: #111827;
+    padding: 32px 20px;
+    line-height: 1.6;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+
+  header {
+    background: linear-gradient(135deg, #1a2744, #2d3d5c);
+    color: #fff;
+    padding: 32px 40px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  header h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  header p { opacity: 0.7; font-size: 14px; }
+
+  .progress-bar {
+    background: #e5e7eb;
+    border-radius: 99px;
+    height: 12px;
+    margin: 16px 0 24px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    background: #22c55e;
+    height: 100%;
+    transition: width .3s;
+    width: 0%;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 8px;
+  }
+
+  section {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  section h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a2744;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section .meta {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 16px;
+    padding-left: 36px;
+  }
+  section .icon {
+    width: 28px; height: 28px;
+    background: #1a2744;
+    color: #fff;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .checklist { list-style: none; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+    border: 1px solid transparent;
+  }
+  .checklist li:hover { background: #f9fafb; border-color: #e5e7eb; }
+  .checklist li.done { background: #dcfce7; border-color: #86efac; }
+  .checklist li.done .text { text-decoration: line-through; color: #6b7280; }
+  .checklist input {
+    margin-top: 4px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #22c55e;
+    flex-shrink: 0;
+  }
+  .checklist .text {
+    font-size: 14.5px;
+    color: #374151;
+    flex: 1;
+  }
+  .checklist .text strong { color: #111827; }
+  .checklist .hint {
+    display: block;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 3px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .badge-critical { background: #fee2e2; color: #991b1b; }
+  .badge-high     { background: #fef3c7; color: #92400e; }
+  .badge-normal   { background: #dbeafe; color: #1e40af; }
+
+  .info-box {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 20px;
+    font-size: 13.5px;
+    color: #78350f;
+  }
+  .info-box strong { color: #451a03; }
+
+  .urgent-box {
+    background: #fee2e2;
+    border-left: 4px solid #ef4444;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin-top: 20px;
+    font-size: 13.5px;
+    color: #7f1d1d;
+  }
+
+  .summary {
+    background: #fff;
+    border: 2px solid #1a2744;
+    border-radius: 14px;
+    padding: 28px;
+    margin-top: 32px;
+    text-align: center;
+  }
+  .summary .num {
+    font-size: 56px;
+    font-weight: 800;
+    color: #1a2744;
+  }
+  .summary .label {
+    font-size: 14px;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+
+  .reset-btn {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: #6b7280;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 16px;
+  }
+  .reset-btn:hover { background: #f9fafb; }
+
+  @media print {
+    body { background: #fff; padding: 20px; }
+    section { box-shadow: none; border: 1px solid #e5e7eb; break-inside: avoid; }
+    header { background: #1a2744 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>📋 설명회 직전 최종 체크리스트</h1>
+  <p>이 페이지를 켜놓고 실제 시스템에서 하나하나 확인하면서 체크하세요</p>
+</header>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progress"></div>
+</div>
+<div class="progress-label">
+  <span id="progress-text">0 / 0 완료</span>
+  <span>체크 시 자동 저장됨 (브라우저 로컬)</span>
+</div>
+
+<!-- ═══════════ 1. 서버/배포 ═══════════ -->
+<section>
+  <h2><span class="icon">1</span>서버 · 배포 상태</h2>
+  <p class="meta">배포 사이트가 제대로 떠 있는지 확인</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text"><strong>https://kog-mss.vercel.app/login</strong> 접속 <span class="badge badge-critical">필수</span><span class="hint">로그인 화면이 정상 노출되는지</span></span></li>
+    <li><input type="checkbox"><span class="text">Vercel Deployments에서 <strong>최신 배포 ✓ Ready</strong> 상태 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">로그인 화면에 <strong>"Google 계정으로 로그인"</strong> 버튼 표시 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">로그인 화면에 <strong>"샘플 데이터로 체험하기"</strong> 노란 버튼 표시</span></li>
+    <li><input type="checkbox"><span class="text">로고 · KOG INTERNATIONAL 텍스트 · 디자인 정상</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 2. 로그인 ═══════════ -->
+<section>
+  <h2><span class="icon">2</span>Google 로그인 흐름</h2>
+  <p class="meta">실제 등록된 계정으로 로그인 테스트</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text"><strong>본인 Gmail로 로그인</strong> → 대시보드 정상 진입 <span class="badge badge-critical">필수</span><span class="hint">3초 이내 진입되는지 (속도)</span></span></li>
+    <li><input type="checkbox"><span class="text">사이드바 하단에 <strong>본인 이름 + 직책</strong> 표시</span></li>
+    <li><input type="checkbox"><span class="text">로그아웃 클릭 → 로그인 화면 복귀 <span class="badge badge-high">중요</span></span></li>
+    <li><input type="checkbox"><span class="text"><strong>다른 Gmail (외부 계정)로 로그인 시도</strong> → "등록되지 않은 계정" 에러 <span class="badge badge-critical">필수</span><span class="hint">화이트리스트 동작 확인 — 이게 안 되면 보안 문제</span></span></li>
+    <li><input type="checkbox"><span class="text">"샘플 데이터로 체험하기" → 데모 모드 진입 (사이드바에 SAMPLE 뱃지)</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 3. 대시보드 ═══════════ -->
+<section>
+  <h2><span class="icon">3</span>대시보드 화면</h2>
+  <p class="meta">발표에서 처음 보여줄 화면 — 가장 중요</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text">상단 4개 KPI 카드 정상 (지연 프로젝트 / 검사 임박 / 교육 / 공문서) <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text"><strong>📝 오늘 업무일지</strong> 섹션 표시 (빈 상태면 "+ 업무 등록하기" 링크) <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text"><strong>📅 이달 근태 달력</strong> 표시 — 오늘 날짜 에메랄드 색 강조 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">근태 색상 범례 (연차/반차/외근/출장/재택/병가) 보임</span></li>
+    <li><input type="checkbox"><span class="text">우측 상단 "미읽은 알림 N건" 표시</span></li>
+    <li><input type="checkbox"><span class="text">하단 "부서별 이달 업무 달성률" + "최근 알림" 섹션</span></li>
+    <li><input type="checkbox"><span class="text">"전체보기 →" 링크 클릭 시 정상 이동 <span class="badge badge-high">중요</span></span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 4. 업무일지 ═══════════ -->
+<section>
+  <h2><span class="icon">4</span>업무일지 (핵심 데모 기능)</h2>
+  <p class="meta">매일 사용할 가장 중요한 기능</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text">사이드바 "업무관리 → 업무일지" 진입 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">날짜 이동 (← →) 정상 작동</span></li>
+    <li><input type="checkbox"><span class="text"><strong>+ 업무 등록</strong> 버튼 → 폼 열림 → 등록 후 즉시 목록에 추가 <span class="badge badge-critical">필수</span><span class="hint">정기업무/프로젝트/돌발업무 3종 선택</span></span></li>
+    <li><input type="checkbox"><span class="text">동그라미 클릭 → 체크마크로 변경 (달성 처리)</span></li>
+    <li><input type="checkbox"><span class="text">연필 아이콘 → <strong>편집 모드</strong> → 제목/유형/설명 수정 가능</span></li>
+    <li><input type="checkbox"><span class="text">📊 보고서 버튼 → 당일 / 주간 / 월간 리포트 정상</span></li>
+    <li><input type="checkbox"><span class="text">리포트 부서 드롭다운 → 부서별 필터 작동</span></li>
+    <li><input type="checkbox"><span class="text">"인쇄/PDF" 버튼 → 인쇄 미리보기 (결재란 포함)</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 5. 근태 관리 ═══════════ -->
+<section>
+  <h2><span class="icon">5</span>근태 관리 (핵심 데모 기능)</h2>
+  <p class="meta">신청 → 승인 워크플로우 시연</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text">사이드바 "인사관리 → 근태 관리" 진입 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">월간 캘린더 정상 표시 (오늘 강조)</span></li>
+    <li><input type="checkbox"><span class="text"><strong>+ 근태 신청</strong> → 모달 열림 → 유형 선택 후 신청 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">"연속 등록(다일)" 체크 → 시작/종료일 입력 → 평일 N일 계산 표시</span></li>
+    <li><input type="checkbox"><span class="text">대기 상태 근태가 캘린더에 <strong>주황색 점선</strong>으로 표시</span></li>
+    <li><input type="checkbox"><span class="text">관리자 계정에서 대기 건 → <strong>승인 / 반려</strong> 버튼 동작 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">반려 시 사유 입력 모달 → 입력 후 처리</span></li>
+    <li><input type="checkbox"><span class="text">직원별 월간 현황에 <strong>연차 잔여일수</strong> 표시 (X/Y일)</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 6. 사용자/부서 관리 (admin) ═══════════ -->
+<section>
+  <h2><span class="icon">6</span>관리자 — 사용자 · 부서</h2>
+  <p class="meta">admin 계정으로 로그인해서 확인</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text">사이드바에 <strong>"시스템 설정"</strong> 그룹 표시 (admin만 보임)</span></li>
+    <li><input type="checkbox"><span class="text">사용자 관리 → 직원 12명 목록 정상 (이름/직책/부서/역할) <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">"수정" 버튼 → 모달 → 이름/직책/부서/역할/입사일 수정 <span class="badge badge-high">중요</span></span></li>
+    <li><input type="checkbox"><span class="text">"+ 사용자 추가" → 새 사용자 폼 (비밀번호 필드 없음)</span></li>
+    <li><input type="checkbox"><span class="text">역할 변경 (admin/manager/staff) 인라인 작동</span></li>
+    <li><input type="checkbox"><span class="text">활성/비활성 토글 작동</span></li>
+    <li><input type="checkbox"><span class="text">부서 관리 → 6개 부서 표시 (또는 본인이 등록한 만큼)</span></li>
+    <li><input type="checkbox"><span class="text">부서 수정/삭제 가능 (직원 있는 부서는 삭제 차단)</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 7. 인사관리 ═══════════ -->
+<section>
+  <h2><span class="icon">7</span>인사 관리 메뉴들</h2>
+  <p class="meta">조직 정보 화면</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text">직원 관리 → 12명 목록 표시, 입사일 NULL인 사람은 <strong>"-"</strong>로 표시 (56년 X) <span class="badge badge-critical">필수</span><span class="hint">최근 수정한 버그 — 잘 고쳐졌는지 확인</span></span></li>
+    <li><input type="checkbox"><span class="text">조직도 → 부서별 카드 표시, 무소속 직원은 별도 섹션</span></li>
+    <li><input type="checkbox"><span class="text">복지 관리 → HR 이벤트 목록 (없으면 빈 상태 안내)</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 8. 다른 모듈들 ═══════════ -->
+<section>
+  <h2><span class="icon">8</span>나머지 모듈 빠른 점검</h2>
+  <p class="meta">각 페이지 진입만 확인 (에러 없으면 OK)</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text">프로젝트 → 목록 화면 정상 (등록한 프로젝트 없으면 빈 상태)</span></li>
+    <li><input type="checkbox"><span class="text">공문서 → 목록 화면 정상</span></li>
+    <li><input type="checkbox"><span class="text">교육 일정 → 목록 화면 정상</span></li>
+    <li><input type="checkbox"><span class="text">정기검사 → 목록 화면 정상</span></li>
+    <li><input type="checkbox"><span class="text">연간 일정 → 캘린더/목록 뷰 전환 가능</span></li>
+    <li><input type="checkbox"><span class="text">알림 센터 → "알림이 없습니다" 또는 알림 목록 표시</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 9. 모바일 ═══════════ -->
+<section>
+  <h2><span class="icon">9</span>모바일 화면</h2>
+  <p class="meta">발표 중 모바일에서도 보여주는 경우</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text">스마트폰 브라우저로 접속 → 자동 모바일 레이아웃 <span class="badge badge-high">중요</span></span></li>
+    <li><input type="checkbox"><span class="text">햄버거 메뉴(≡) 클릭 → 사이드바 정상 슬라이드</span></li>
+    <li><input type="checkbox"><span class="text">대시보드 KPI 카드 2x2 그리드로 정상 표시</span></li>
+    <li><input type="checkbox"><span class="text">모바일에서 Google 로그인 가능</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 10. 발표 환경 ═══════════ -->
+<section>
+  <h2><span class="icon">10</span>발표 환경 준비</h2>
+  <p class="meta">실제 발표장 세팅</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text"><strong>노트북 풀 충전</strong> + 충전기 챙김 <span class="badge badge-critical">필수</span></span></li>
+    <li><input type="checkbox"><span class="text">프로젝터/모니터 연결 케이블 (HDMI/USB-C) 준비</span></li>
+    <li><input type="checkbox"><span class="text">발표장 Wi-Fi 또는 LTE 핫스팟 준비 <span class="badge badge-critical">필수</span><span class="hint">웹 시스템이라 인터넷 끊기면 데모 불가</span></span></li>
+    <li><input type="checkbox"><span class="text">브라우저 북마크: <strong>로그인 화면 + 대시보드</strong> 미리 열어두기</span></li>
+    <li><input type="checkbox"><span class="text">발표자료 (PRESENTATION.html) 별도 탭에 미리 띄우기</span></li>
+    <li><input type="checkbox"><span class="text">이 체크리스트도 별도 탭에 띄워서 진행 표시</span></li>
+    <li><input type="checkbox"><span class="text">사용 안내 자료 (USER-GUIDE.html) 직원들에게 공유 준비</span></li>
+    <li><input type="checkbox"><span class="text">시연용 더미 데이터 1~2건 미리 입력해두기 (빈 화면 방지)</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 11. 시나리오 ═══════════ -->
+<section>
+  <h2><span class="icon">11</span>발표 시연 시나리오 리허설</h2>
+  <p class="meta">실제 시연 흐름 한 번 연습</p>
+  <ul class="checklist">
+    <li><input type="checkbox"><span class="text"><strong>시나리오 ①</strong>: 일반 직원 입장 — 로그인 → 대시보드 → 업무일지 등록 → 달성 처리 → 근태 신청</span></li>
+    <li><input type="checkbox"><span class="text"><strong>시나리오 ②</strong>: 관리자 입장 — 로그아웃 → admin 계정 로그인 → 근태 승인 → 사용자 관리 → 보고서 출력</span></li>
+    <li><input type="checkbox"><span class="text">각 시나리오 1~2분 내 시연 가능한지 시간 측정</span></li>
+    <li><input type="checkbox"><span class="text">중간에 끊기는 부분 / 답변 어려운 질문 미리 정리</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════ 요약 ═══════════ -->
+<div class="summary">
+  <div class="num" id="summary-pct">0%</div>
+  <div class="label">최종 점검 완료율</div>
+  <button class="reset-btn" onclick="resetAll()">전체 초기화</button>
+</div>
+
+<div class="info-box">
+  <strong>💡 발표 직전 팁:</strong><br>
+  · 처음 1분: <strong>"이 시스템이 왜 필요한가"</strong> (PRESENTATION 슬라이드 2)부터 시작<br>
+  · 데모는 일반 직원 시점부터 보여주면 공감 더 잘 됨<br>
+  · 빈 화면이 나오면 "샘플 데이터로 체험하기"로 전환해서 풍부한 화면 보여주기<br>
+  · 질문 받을 때 막히면 "지금 바로 검토해서 회신드리겠습니다"로 마무리
+</div>
+
+<div class="urgent-box">
+  <strong>🚨 만약 문제 발생 시:</strong><br>
+  · 로그인 안 됨 → "샘플 데이터 체험" 버튼으로 전환 (실제 인증 우회)<br>
+  · 화면 깨짐 → 강력 새로고침 (<span style="font-family:monospace; background:#fff; padding:2px 6px; border-radius:3px;">Ctrl + Shift + R</span>)<br>
+  · 인터넷 끊김 → LTE 핫스팟으로 즉시 전환<br>
+  · 페이지 진입 느림 → 잠시 후 재시도 (Vercel cold start 가능)
+</div>
+
+</div>
+
+<script>
+  const STORAGE_KEY = 'kog-mss-checklist';
+  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+  const total = checkboxes.length;
+  const progressBar = document.getElementById('progress');
+  const progressText = document.getElementById('progress-text');
+  const summaryPct = document.getElementById('summary-pct');
+
+  function update() {
+    const done = Array.from(checkboxes).filter(c => c.checked).length;
+    const pct = Math.round((done / total) * 100);
+    progressBar.style.width = pct + '%';
+    progressText.textContent = `${done} / ${total} 완료 (${pct}%)`;
+    summaryPct.textContent = pct + '%';
+    summaryPct.style.color = pct === 100 ? '#22c55e' : pct >= 70 ? '#1a2744' : '#6b7280';
+
+    // Save state
+    const state = Array.from(checkboxes).map(c => c.checked);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    // Toggle done class on parent li
+    checkboxes.forEach(c => {
+      c.closest('li').classList.toggle('done', c.checked);
+    });
+  }
+
+  // Load state
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const state = JSON.parse(saved);
+    checkboxes.forEach((c, i) => { if (state[i]) c.checked = true; });
+  }
+
+  checkboxes.forEach(c => c.addEventListener('change', update));
+
+  // Click on li also toggles
+  document.querySelectorAll('.checklist li').forEach(li => {
+    li.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'INPUT') {
+        const cb = li.querySelector('input');
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change'));
+      }
+    });
+  });
+
+  function resetAll() {
+    if (!confirm('모든 체크 표시를 초기화하시겠습니까?')) return;
+    checkboxes.forEach(c => c.checked = false);
+    update();
+  }
+
+  update();
+</script>
+
+</body>
+</html>
